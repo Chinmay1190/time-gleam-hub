@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Smartphone, Wallet, Banknote, ArrowLeft, Shield, Truck } from "lucide-react";
+import { Check, CreditCard, Smartphone, Wallet, Banknote, ArrowLeft, Shield, Truck, Tag, Percent } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,6 +18,13 @@ const paymentMethods = [
 
 const GST_RATE = 18;
 
+const discountCodes: Record<string, { type: "percent" | "flat"; value: number; minOrder: number }> = {
+  WELCOME10: { type: "percent", value: 10, minOrder: 999 },
+  FLAT500: { type: "flat", value: 500, minOrder: 4999 },
+  CHRONO20: { type: "percent", value: 20, minOrder: 9999 },
+  SAVE1000: { type: "flat", value: 1000, minOrder: 14999 },
+};
+
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
@@ -26,6 +33,9 @@ const Checkout = () => {
   const [step, setStep] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("upi");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
@@ -38,9 +48,32 @@ const Checkout = () => {
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(p);
 
   const subtotal = totalPrice;
-  const gstAmount = Math.round(subtotal * GST_RATE / 100);
+  const gstAmount = Math.round((subtotal - discountAmount) * GST_RATE / 100);
   const shipping = subtotal >= 999 ? 0 : 99;
-  const total = subtotal + gstAmount + shipping;
+  const total = subtotal - discountAmount + gstAmount + shipping;
+
+  const applyCoupon = () => {
+    const code = couponCode.trim().toUpperCase();
+    const coupon = discountCodes[code];
+    if (!coupon) {
+      toast({ title: "Invalid coupon code", variant: "destructive" });
+      return;
+    }
+    if (subtotal < coupon.minOrder) {
+      toast({ title: `Minimum order ₹${coupon.minOrder.toLocaleString()} required`, variant: "destructive" });
+      return;
+    }
+    const discount = coupon.type === "percent" ? Math.round(subtotal * coupon.value / 100) : coupon.value;
+    setDiscountAmount(discount);
+    setAppliedCoupon(code);
+    toast({ title: `Coupon applied! You save ${formatPrice(discount)}` });
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponCode("");
+  };
 
   const validateStep = () => {
     if (step === 0) {
@@ -81,7 +114,7 @@ const Checkout = () => {
         .from("orders")
         .insert({
           user_id: user.id,
-          subtotal,
+          subtotal: subtotal - discountAmount,
           gst_amount: gstAmount,
           gst_rate: GST_RATE,
           shipping_amount: shipping,
@@ -242,15 +275,40 @@ const Checkout = () => {
                       </label>
                     ))}
                   </div>
+
+                  {/* UPI ID field */}
+                  {selectedPayment === "upi" && (
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">UPI ID</label>
+                      <input placeholder="yourname@upi" className="input-field" />
+                    </div>
+                  )}
+
+                  {/* Card fields */}
+                  {selectedPayment === "card" && (
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Card Number</label>
+                        <input placeholder="1234 5678 9012 3456" className="input-field" maxLength={19} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Expiry</label>
+                          <input placeholder="MM/YY" className="input-field" maxLength={5} />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">CVV</label>
+                          <input placeholder="***" type="password" className="input-field" maxLength={4} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
               <div className="flex gap-4">
                 {step > 0 && (
-                  <button
-                    onClick={() => setStep(step - 1)}
-                    className="btn-secondary py-3 px-6"
-                  >
+                  <button onClick={() => setStep(step - 1)} className="btn-secondary py-3 px-6">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                 )}
@@ -291,11 +349,58 @@ const Checkout = () => {
                 ))}
               </div>
 
+              {/* Coupon Code */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Tag className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Discount Code</span>
+                </div>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <Percent className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-bold text-primary">{appliedCoupon}</span>
+                      <span className="text-xs text-muted-foreground">(-{formatPrice(discountAmount)})</span>
+                    </div>
+                    <button onClick={removeCoupon} className="text-xs text-destructive hover:underline">Remove</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Enter code"
+                      className="flex-1 px-3 py-2 bg-muted rounded-lg text-sm outline-none focus:ring-1 ring-primary border border-transparent focus:border-primary/30"
+                    />
+                    <button onClick={applyCoupon} className="px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:scale-[1.02] transition-transform">
+                      Apply
+                    </button>
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {Object.keys(discountCodes).map((code) => (
+                    <button
+                      key={code}
+                      onClick={() => { setCouponCode(code); }}
+                      className="text-[10px] px-2 py-0.5 border border-dashed border-primary/40 text-primary rounded-md hover:bg-primary/5 transition-colors"
+                    >
+                      {code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="border-t border-border pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-primary">
+                    <span>Discount</span>
+                    <span>-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">GST (18%)</span>
                   <span>{formatPrice(gstAmount)}</span>
