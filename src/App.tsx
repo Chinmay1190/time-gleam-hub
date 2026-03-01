@@ -6,9 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
+import CartNotification from "@/components/CartNotification";
+import { useCart } from "@/context/CartContext";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -27,49 +30,59 @@ import Wishlist from "./pages/Wishlist";
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 import OrderSuccess from "./pages/OrderSuccess";
+import Invoice from "./pages/Invoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const CartNotificationWrapper = () => {
+  const { notification, clearNotification } = useCart();
+  return <CartNotification product={notification} onClose={clearNotification} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <Toaster />
-            <Sonner />
-            <LoadingScreen />
-            <BrowserRouter>
-              <Header />
-              <main className="min-h-screen">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/shop" element={<Shop />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/brands" element={<Brands />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/shipping-returns" element={<ShippingReturns />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/wishlist" element={<Wishlist />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/order/:id" element={<OrderDetail />} />
-                  <Route path="/order-success" element={<OrderSuccess />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-            </BrowserRouter>
-          </CartProvider>
-        </WishlistProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <Toaster />
+              <Sonner />
+              <LoadingScreen />
+              <BrowserRouter>
+                <CartNotificationWrapper />
+                <Header />
+                <main className="min-h-screen">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/shop" element={<Shop />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/brands" element={<Brands />} />
+                    <Route path="/faq" element={<FAQ />} />
+                    <Route path="/shipping-returns" element={<ShippingReturns />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/order/:id" element={<OrderDetail />} />
+                    <Route path="/order-success" element={<OrderSuccess />} />
+                    <Route path="/invoice/:id" element={<Invoice />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </BrowserRouter>
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

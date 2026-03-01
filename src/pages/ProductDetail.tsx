@@ -1,11 +1,11 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShoppingCart, Heart, Star, Battery, Droplets, Cpu, Smartphone, ArrowLeft, Check, Truck, RotateCcw, Shield } from "lucide-react";
+import { ShoppingCart, Heart, Star, Battery, Droplets, Cpu, Smartphone, ArrowLeft, Check, Truck, RotateCcw, Shield, RotateCw } from "lucide-react";
 import { products } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import ProductCard from "@/components/ProductCard";
 
@@ -19,6 +19,58 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState(0);
   const [added, setAdded] = useState(false);
   const wishlisted = product ? isWishlisted(product.id) : false;
+
+  // 360° rotation state
+  const [rotation, setRotation] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const lastXRef = useRef(0);
+  const autoRotateRef = useRef<number>();
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true);
+    lastXRef.current = e.clientX;
+    setIsAutoRotating(false);
+    if (autoRotateRef.current) cancelAnimationFrame(autoRotateRef.current);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const delta = e.clientX - lastXRef.current;
+    setRotation((prev) => prev + delta * 0.5);
+    lastXRef.current = e.clientX;
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setIsDragging(true);
+    lastXRef.current = e.touches[0].clientX;
+    setIsAutoRotating(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientX - lastXRef.current;
+    setRotation((prev) => prev + delta * 0.5);
+    lastXRef.current = e.touches[0].clientX;
+  }, [isDragging]);
+
+  const toggle360 = () => {
+    if (isAutoRotating) {
+      setIsAutoRotating(false);
+      if (autoRotateRef.current) cancelAnimationFrame(autoRotateRef.current);
+    } else {
+      setIsAutoRotating(true);
+      const animate = () => {
+        setRotation((prev) => prev + 1);
+        autoRotateRef.current = requestAnimationFrame(animate);
+      };
+      animate();
+    }
+  };
 
   const handleWishlistToggle = () => {
     if (!product) return;
@@ -59,24 +111,53 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-main px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
         <Link to="/shop" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Shop
         </Link>
 
         <div className="grid lg:grid-cols-2 gap-12 mb-20">
-          {/* Image */}
+          {/* Image with 360° rotation */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             className="glass-card overflow-hidden rounded-3xl relative group"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleMouseUp}
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
           >
-            <img src={product.image} alt={product.name} className="w-full aspect-square object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="w-full aspect-square overflow-hidden relative">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-100"
+                style={{ transform: `perspective(1000px) rotateY(${rotation}deg)` }}
+                draggable={false}
+              />
+            </div>
             {product.badge && (
               <span className="absolute top-4 left-4 px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-lg shadow-primary/30">
                 {product.badge}
               </span>
             )}
+            {/* 360° button */}
+            <button
+              onClick={toggle360}
+              className={`absolute bottom-4 right-4 p-3 rounded-xl backdrop-blur-sm border transition-all duration-200 ${
+                isAutoRotating
+                  ? "bg-primary/20 border-primary/50 text-primary"
+                  : "bg-background/60 border-border text-muted-foreground hover:text-primary hover:border-primary/30"
+              }`}
+            >
+              <RotateCw className={`w-5 h-5 ${isAutoRotating ? "animate-spin" : ""}`} />
+            </button>
+            <p className="absolute bottom-4 left-4 text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm px-2 py-1 rounded-lg border border-border">
+              Drag to rotate 360°
+            </p>
           </motion.div>
 
           {/* Details */}
