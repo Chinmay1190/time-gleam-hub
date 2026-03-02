@@ -31,6 +31,20 @@ const heroSlides = [
     subtitle: "Luxury smartwatches that blend fashion with cutting-edge technology.",
     badge: "Luxury Collection",
   },
+  {
+    image: watch3,
+    title: "Conquer The",
+    highlight: "Outdoors.",
+    subtitle: "Rugged, GPS-enabled watches built for every adventure and extreme terrain.",
+    badge: "Outdoor Edition",
+  },
+  {
+    image: heroWatch,
+    title: "Smart For",
+    highlight: "Everyone.",
+    subtitle: "From budget-friendly to ultra-premium — find the perfect watch for every wrist.",
+    badge: "Best Sellers",
+  },
 ];
 
 const Index = () => {

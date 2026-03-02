@@ -20,41 +20,68 @@ const ProductDetail = () => {
   const [added, setAdded] = useState(false);
   const wishlisted = product ? isWishlisted(product.id) : false;
 
-  // 360° rotation state
+  // 360° rotation state with momentum
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const lastXRef = useRef(0);
+  const velocityRef = useRef(0);
   const autoRotateRef = useRef<number>();
+  const momentumRef = useRef<number>();
+
+  const stopMomentum = useCallback(() => {
+    if (momentumRef.current) cancelAnimationFrame(momentumRef.current);
+  }, []);
+
+  const startMomentum = useCallback(() => {
+    stopMomentum();
+    const decelerate = () => {
+      velocityRef.current *= 0.95;
+      if (Math.abs(velocityRef.current) < 0.1) {
+        velocityRef.current = 0;
+        return;
+      }
+      setRotation((prev) => prev + velocityRef.current);
+      momentumRef.current = requestAnimationFrame(decelerate);
+    };
+    decelerate();
+  }, [stopMomentum]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     setIsDragging(true);
     lastXRef.current = e.clientX;
+    velocityRef.current = 0;
+    stopMomentum();
     setIsAutoRotating(false);
     if (autoRotateRef.current) cancelAnimationFrame(autoRotateRef.current);
-  }, []);
+  }, [stopMomentum]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
     const delta = e.clientX - lastXRef.current;
-    setRotation((prev) => prev + delta * 0.5);
+    velocityRef.current = delta * 0.4;
+    setRotation((prev) => prev + delta * 0.6);
     lastXRef.current = e.clientX;
   }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  }, []);
+    if (Math.abs(velocityRef.current) > 0.5) startMomentum();
+  }, [startMomentum]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setIsDragging(true);
     lastXRef.current = e.touches[0].clientX;
+    velocityRef.current = 0;
+    stopMomentum();
     setIsAutoRotating(false);
-  }, []);
+  }, [stopMomentum]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return;
     const delta = e.touches[0].clientX - lastXRef.current;
-    setRotation((prev) => prev + delta * 0.5);
+    velocityRef.current = delta * 0.4;
+    setRotation((prev) => prev + delta * 0.6);
     lastXRef.current = e.touches[0].clientX;
   }, [isDragging]);
 
@@ -65,7 +92,7 @@ const ProductDetail = () => {
     } else {
       setIsAutoRotating(true);
       const animate = () => {
-        setRotation((prev) => prev + 1);
+        setRotation((prev) => prev + 0.8);
         autoRotateRef.current = requestAnimationFrame(animate);
       };
       animate();
@@ -134,8 +161,11 @@ const ProductDetail = () => {
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-100"
-                style={{ transform: `perspective(1000px) rotateY(${rotation}deg)` }}
+                className="w-full h-full object-cover select-none"
+                style={{
+                  transform: `perspective(800px) rotateY(${rotation}deg) scale(${isDragging ? 1.02 : 1})`,
+                  transition: isDragging ? "none" : "transform 0.15s ease-out",
+                }}
                 draggable={false}
               />
             </div>
