@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, FileText, Download, Eye, Printer } from "lucide-react";
+import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, FileText, Eye } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,7 +23,6 @@ const OrderDetail = () => {
 
   useEffect(() => {
     if (!user || !id) return;
-
     const fetchOrder = async () => {
       const { data: orderData } = await supabase
         .from("orders").select("*").eq("id", id).eq("user_id", user.id).single();
@@ -33,7 +32,6 @@ const OrderDetail = () => {
       setItems(itemsData || []);
       setLoading(false);
     };
-
     fetchOrder();
 
     const channel = supabase
@@ -77,7 +75,7 @@ const OrderDetail = () => {
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Header */}
+          {/* Header with separate buttons */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="font-heading text-2xl sm:text-3xl font-bold">{order.order_number}</h1>
@@ -85,22 +83,28 @@ const OrderDetail = () => {
                 Placed on {new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "long" })}
               </p>
             </div>
-            <Link
-              to={`/invoice/${id}`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
-            >
-              <FileText className="w-4 h-4" /> View Invoice
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                to={`/invoice/${id}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+              >
+                <Eye className="w-4 h-4" /> View Invoice
+              </Link>
+            </div>
           </div>
 
-          {/* Tracking */}
+          {/* Enhanced Tracking */}
           {!isCancelled && (
-            <div className="glass-card p-6 mb-6">
-              <h2 className="font-heading font-semibold text-lg mb-6">Order Tracking</h2>
+            <div className="glass-card p-6 sm:p-8 mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-heading font-semibold text-lg">Order Tracking</h2>
+                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium capitalize">{order.status?.replace("_", " ")}</span>
+              </div>
               <div className="relative">
                 <div className="flex justify-between">
                   {allStatuses.map((s, i) => {
                     const isActive = i <= currentStatusIndex;
+                    const isCurrent = i === currentStatusIndex;
                     const Icon = s.icon;
                     return (
                       <div key={s.key} className="flex flex-col items-center flex-1 relative">
@@ -114,7 +118,11 @@ const OrderDetail = () => {
                           animate={{ scale: 1 }}
                           transition={{ delay: i * 0.1 }}
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                            isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30" : "bg-muted text-muted-foreground"
+                            isCurrent
+                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-primary/20"
+                              : isActive
+                                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                                : "bg-muted text-muted-foreground"
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -130,13 +138,15 @@ const OrderDetail = () => {
                 </div>
               </div>
               {order.tracking_number && (
-                <p className="text-xs text-muted-foreground mt-4">
-                  Tracking #: <span className="text-foreground font-medium">{order.tracking_number}</span>
-                </p>
+                <div className="mt-5 p-3 rounded-xl bg-muted/50 border border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Tracking #: <span className="text-foreground font-mono font-medium">{order.tracking_number}</span>
+                  </p>
+                </div>
               )}
               {order.estimated_delivery && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Estimated delivery: <span className="text-foreground font-medium">
+                <p className="text-xs text-muted-foreground mt-3">
+                  📦 Estimated delivery: <span className="text-foreground font-medium">
                     {new Date(order.estimated_delivery).toLocaleDateString("en-IN", { dateStyle: "medium" })}
                   </span>
                 </p>
@@ -155,10 +165,10 @@ const OrderDetail = () => {
 
           {/* Items */}
           <div className="glass-card p-6 mb-6">
-            <h2 className="font-heading font-semibold text-lg mb-4">Order Items</h2>
-            <div className="space-y-4">
+            <h2 className="font-heading font-semibold text-lg mb-4">Order Items ({items.length})</h2>
+            <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-4 p-3 rounded-xl hover:bg-muted/30 transition-colors">
+                <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 hover:border-primary/20 transition-colors">
                   {item.product_image && (
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted/30 flex-shrink-0 border border-border">
                       <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
@@ -166,9 +176,9 @@ const OrderDetail = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm">{item.product_name}</h4>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity} × {formatPrice(item.price)}</p>
                   </div>
-                  <span className="font-heading font-bold text-sm">{formatPrice(item.price * item.quantity)}</span>
+                  <span className="font-heading font-bold text-sm self-center">{formatPrice(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
