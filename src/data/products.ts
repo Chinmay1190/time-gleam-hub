@@ -6,6 +6,9 @@ import watch5 from "@/assets/watch-5.png";
 import watch6 from "@/assets/watch-6.png";
 import watch7 from "@/assets/watch-7.png";
 import watch8 from "@/assets/watch-8.png";
+import watch9 from "@/assets/watch-9.png";
+import watch10 from "@/assets/watch-10.png";
+import watch11 from "@/assets/watch-11.png";
 
 export interface Product {
   id: string;
@@ -25,7 +28,7 @@ export interface Product {
   badge?: string;
 }
 
-const watchImages = [watch1, watch2, watch3, watch4, watch5, watch6, watch7, watch8];
+const watchImages = [watch1, watch2, watch3, watch4, watch5, watch6, watch7, watch8, watch9, watch10, watch11];
 
 export const products: Product[] = [
   {
@@ -700,7 +703,7 @@ export const products: Product[] = [
     brand: "Samsung",
     price: 27999,
     originalPrice: 34999,
-    image: watchImages[0],
+    image: watch9,
     category: "Fitness",
     rating: 4.6,
     reviews: 3120,
@@ -717,7 +720,7 @@ export const products: Product[] = [
     brand: "Fossil",
     price: 14999,
     originalPrice: 19999,
-    image: watchImages[1],
+    image: watch10,
     category: "Luxury",
     rating: 4.4,
     reviews: 2345,
@@ -733,7 +736,7 @@ export const products: Product[] = [
     brand: "Garmin",
     price: 46999,
     originalPrice: 56999,
-    image: watchImages[2],
+    image: watch11,
     category: "Outdoor",
     rating: 4.8,
     reviews: 789,

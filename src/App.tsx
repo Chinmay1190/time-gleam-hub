@@ -11,7 +11,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
 import CartNotification from "@/components/CartNotification";
+import WishlistNotification from "@/components/WishlistNotification";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -40,6 +42,11 @@ const CartNotificationWrapper = () => {
   return <CartNotification product={notification} onClose={clearNotification} />;
 };
 
+const WishlistNotificationWrapper = () => {
+  const { notification, clearNotification } = useWishlist();
+  return <WishlistNotification product={notification?.product || null} action={notification?.action || "added"} onClose={clearNotification} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -52,6 +59,7 @@ const App = () => (
               <LoadingScreen />
               <BrowserRouter>
                 <CartNotificationWrapper />
+                <WishlistNotificationWrapper />
                 <Header />
                 <main className="min-h-screen">
                   <Routes>

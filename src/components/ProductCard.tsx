@@ -23,7 +23,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
       toast({ title: "Sign in to add to wishlist", description: "Create an account to save your favorites." });
       return;
     }
-    toggleWishlist(product.id);
+    toggleWishlist(product.id, { name: product.name, image: product.image, price: product.price });
   };
 
   return (

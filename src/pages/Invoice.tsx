@@ -31,14 +31,15 @@ const Invoice = () => {
 
   const handleDownloadPDF = () => {
     const html = generateInvoiceHTML(order, items);
-    const printWindow = window.open("", "_blank", "width=800,height=1100");
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.onload = () => {
-        setTimeout(() => printWindow.print(), 300);
-      };
-    }
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Invoice-${order.order_number || "order"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrint = () => {
