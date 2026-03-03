@@ -16,24 +16,37 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setProfile(data);
-          setForm({
-            full_name: data.full_name || "",
-            phone: data.phone || "",
-            address: data.address || "",
-            city: data.city || "",
-            state: data.state || "",
-            pincode: data.pincode || "",
-          });
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setProfile(data);
+        setForm({
+          full_name: data.full_name || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          city: data.city || "",
+          state: data.state || "",
+          pincode: data.pincode || "",
+        });
+      } else {
+        // Profile doesn't exist yet — create one
+        const fullName = user.user_metadata?.full_name || "";
+        const { data: newProfile } = await supabase
+          .from("profiles")
+          .insert({ user_id: user.id, full_name: fullName })
+          .select()
+          .single();
+        if (newProfile) {
+          setProfile(newProfile);
+          setForm({ full_name: newProfile.full_name || "", phone: "", address: "", city: "", state: "", pincode: "" });
         }
-      });
+      }
+    };
+    loadProfile();
   }, [user]);
 
   const handleSave = async () => {
