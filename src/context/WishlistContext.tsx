@@ -1,12 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
+interface WishlistNotification {
+  product: { name: string; image: string; price: number };
+  action: "added" | "removed";
+}
+
 interface WishlistContextType {
   wishlistIds: string[];
-  toggleWishlist: (productId: string) => Promise<void>;
+  toggleWishlist: (productId: string, productInfo?: { name: string; image: string; price: number }) => Promise<void>;
   isWishlisted: (productId: string) => boolean;
   loading: boolean;
+  notification: WishlistNotification | null;
+  clearNotification: () => void;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
@@ -15,6 +22,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<WishlistNotification | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -35,11 +43,14 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   };
 
-  const toggleWishlist = async (productId: string) => {
+  const clearNotification = useCallback(() => setNotification(null), []);
+
+  const toggleWishlist = async (productId: string, productInfo?: { name: string; image: string; price: number }) => {
     if (!user) return;
     
     if (wishlistIds.includes(productId)) {
       setWishlistIds((prev) => prev.filter((id) => id !== productId));
+      if (productInfo) setNotification({ product: productInfo, action: "removed" });
       await supabase
         .from("wishlists")
         .delete()
@@ -47,6 +58,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
         .eq("product_id", productId);
     } else {
       setWishlistIds((prev) => [...prev, productId]);
+      if (productInfo) setNotification({ product: productInfo, action: "added" });
       await supabase
         .from("wishlists")
         .insert({ user_id: user.id, product_id: productId });
@@ -56,7 +68,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const isWishlisted = (productId: string) => wishlistIds.includes(productId);
 
   return (
-    <WishlistContext.Provider value={{ wishlistIds, toggleWishlist, isWishlisted, loading }}>
+    <WishlistContext.Provider value={{ wishlistIds, toggleWishlist, isWishlisted, loading, notification, clearNotification }}>
       {children}
     </WishlistContext.Provider>
   );

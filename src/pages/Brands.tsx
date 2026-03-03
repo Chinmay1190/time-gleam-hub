@@ -66,7 +66,7 @@ const Brands = () => {
                 <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
                   <span className="text-xs text-muted-foreground">{brand.products} products available</span>
                   <Link
-                    to="/shop"
+                    to={`/shop?brand=${encodeURIComponent(brand.name)}`}
                     className="inline-flex items-center gap-1 text-sm text-primary font-medium hover:gap-2 transition-all"
                   >
                     Shop {brand.name} <ArrowRight className="w-3.5 h-3.5" />

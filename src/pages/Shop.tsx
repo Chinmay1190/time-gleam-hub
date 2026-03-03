@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { SlidersHorizontal, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { products, brands } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 
@@ -15,8 +16,16 @@ const sortOptions = [
 ];
 
 const Shop = () => {
+  const [searchParams] = useSearchParams();
+  const brandFromUrl = searchParams.get("brand");
   const [category, setCategory] = useState("All");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (brandFromUrl) {
+      setSelectedBrands([brandFromUrl]);
+    }
+  }, [brandFromUrl]);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [sortBy, setSortBy] = useState("popularity");
