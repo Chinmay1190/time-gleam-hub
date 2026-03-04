@@ -10,13 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery360 from "@/components/ProductGallery360";
 
-import watch1 from "@/assets/watch-1.png";
-import watch2 from "@/assets/watch-2.png";
-import watch3 from "@/assets/watch-3.png";
-import watch4 from "@/assets/watch-4.png";
-
-const galleryImages = [watch1, watch2, watch3, watch4];
-
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find((p) => p.id === id);
@@ -27,10 +20,6 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState(0);
   const [added, setAdded] = useState(false);
   const wishlisted = product ? isWishlisted(product.id) : false;
-
-  const productImages = product
-    ? [product.image, ...galleryImages.filter((img) => img !== product.image).slice(0, 3)]
-    : galleryImages;
 
   const handleWishlistToggle = () => {
     if (!product) return;
@@ -78,7 +67,7 @@ const ProductDetail = () => {
         <div className="grid lg:grid-cols-2 gap-12 mb-20">
           {/* 360° Gallery */}
           <ProductGallery360
-            images={productImages}
+            images={product.galleryImages || [product.image]}
             productName={product.name}
             badge={product.badge}
           />

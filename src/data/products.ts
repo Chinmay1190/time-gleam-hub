@@ -17,6 +17,7 @@ export interface Product {
   price: number;
   originalPrice: number;
   image: string;
+  galleryImages?: string[];
   category: string;
   rating: number;
   reviews: number;
@@ -867,6 +868,19 @@ export const products: Product[] = [
     badge: "Wellness",
   },
 ];
+
+// Auto-assign gallery images: each product gets its main image + 3 others from the pool
+const allWatchImages = [watch1, watch2, watch3, watch4, watch5, watch6, watch7, watch8, watch9, watch10, watch11];
+products.forEach((p, idx) => {
+  const others = allWatchImages.filter((img) => img !== p.image);
+  const start = (idx * 3) % others.length;
+  p.galleryImages = [
+    p.image,
+    others[start % others.length],
+    others[(start + 1) % others.length],
+    others[(start + 2) % others.length],
+  ];
+});
 
 import catFitness from "@/assets/cat-fitness.png";
 import catLuxury from "@/assets/cat-luxury.png";
