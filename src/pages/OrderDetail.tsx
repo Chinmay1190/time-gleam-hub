@@ -174,8 +174,39 @@ const OrderDetail = () => {
                   })}
                 </div>
               </div>
+              {/* Status Timestamps */}
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {order.created_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Order Placed</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.confirmed_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Confirmed</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.confirmed_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.confirmed_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.shipped_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Shipped</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.shipped_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.shipped_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.delivered_at && (
+                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                    <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Delivered</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.delivered_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.delivered_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+              </div>
               {order.tracking_number && (
-                <div className="mt-5 p-3 rounded-xl bg-muted/50 border border-border">
+                <div className="mt-4 p-3 rounded-xl bg-muted/50 border border-border">
                   <p className="text-xs text-muted-foreground">
                     Tracking #: <span className="text-foreground font-mono font-medium">{order.tracking_number}</span>
                   </p>
@@ -188,6 +219,11 @@ const OrderDetail = () => {
                   </span>
                 </p>
               )}
+              {/* Last updated indicator */}
+              <div className="mt-4 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] text-muted-foreground">Live tracking • Last updated {new Date(order.updated_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
             </div>
           )}
 
