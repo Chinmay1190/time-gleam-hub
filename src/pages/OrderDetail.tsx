@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, FileText, Eye } from "lucide-react";
+import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
