@@ -34,22 +34,60 @@ const Invoice = () => {
   const formatPrice = (p: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(p);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setDownloading(true);
-    const html = generateInvoiceHTML(order, items);
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ChronoHub-Invoice-${order.order_number || "order"}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setTimeout(() => {
+    try {
+      // Create a hidden container with the invoice HTML
+      const container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "800px";
+      container.style.background = "#fff";
+      container.innerHTML = generateInvoiceHTMLForPDF(order, items);
+      document.body.appendChild(container);
+
+      // Wait for fonts/images to load
+      await new Promise((r) => setTimeout(r, 500));
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width: 800,
+      });
+
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      let position = 0;
+      const pageHeight = 297; // A4 height in mm
+
+      // Handle multi-page
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+      } else {
+        let remainingHeight = imgHeight;
+        while (remainingHeight > 0) {
+          pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+          remainingHeight -= pageHeight;
+          position -= pageHeight;
+          if (remainingHeight > 0) pdf.addPage();
+        }
+      }
+
+      pdf.save(`ChronoHub-Invoice-${order.order_number || "order"}.pdf`);
+      toast({ title: "Invoice Downloaded!", description: `Saved as ChronoHub-Invoice-${order.order_number}.pdf` });
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast({ title: "Download failed", description: "Please try the Print option instead", variant: "destructive" });
+    } finally {
       setDownloading(false);
-      toast({ title: "Invoice Downloaded!", description: `Saved as ChronoHub-Invoice-${order.order_number}.html` });
-    }, 800);
+    }
   };
 
   const handlePrint = () => {
