@@ -117,9 +117,15 @@ const OrderDetail = () => {
             <div className="flex gap-2">
               <Link
                 to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-secondary hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 <Eye className="w-4 h-4" /> View Invoice
+              </Link>
+              <Link
+                to={`/invoice/${id}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+              >
+                <Download className="w-4 h-4" /> Download PDF
               </Link>
             </div>
           </div>
