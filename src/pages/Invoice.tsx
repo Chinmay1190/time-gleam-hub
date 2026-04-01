@@ -5,6 +5,8 @@ import { ArrowLeft, Download, Printer, FileText, Clock, CreditCard, MapPin, Rece
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const Invoice = () => {
   const { id } = useParams();
