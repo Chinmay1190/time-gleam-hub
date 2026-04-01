@@ -1,68 +1,85 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download, RefreshCw, Bell, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const allStatuses = [
-  { key: "pending", label: "Order Placed", icon: Clock },
-  { key: "confirmed", label: "Confirmed", icon: CheckCircle },
-  { key: "processing", label: "Processing", icon: Package },
-  { key: "shipped", label: "Shipped", icon: Truck },
-  { key: "out_for_delivery", label: "Out for Delivery", icon: MapPin },
-  { key: "delivered", label: "Delivered", icon: CheckCircle },
+  { key: "pending", label: "Order Placed", icon: Clock, description: "Your order has been received" },
+  { key: "confirmed", label: "Confirmed", icon: CheckCircle, description: "Seller has confirmed your order" },
+  { key: "processing", label: "Processing", icon: Package, description: "Your order is being prepared" },
+  { key: "shipped", label: "Shipped", icon: Truck, description: "Your order is on the way" },
+  { key: "out_for_delivery", label: "Out for Delivery", icon: MapPin, description: "Arriving today" },
+  { key: "delivered", label: "Delivered", icon: CheckCircle, description: "Successfully delivered" },
 ];
+
+const statusTimestampKeys: Record<string, string> = {
+  pending: "created_at",
+  confirmed: "confirmed_at",
+  shipped: "shipped_at",
+  delivered: "delivered_at",
+};
 
 const OrderDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [statusChanged, setStatusChanged] = useState(false);
+  const prevStatusRef = useRef<string | null>(null);
+
+  const fetchData = async () => {
+    if (!user || !id) return;
+    const { data: orderData } = await supabase
+      .from("orders").select("*").eq("id", id).eq("user_id", user.id).single();
+    const { data: itemsData } = await supabase
+      .from("order_items").select("*").eq("order_id", id);
+    setOrder(orderData);
+    setItems(itemsData || []);
+    setLoading(false);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setTimeout(() => setRefreshing(false), 600);
+    toast({ title: "✅ Status refreshed", description: "Order tracking is up to date" });
+  };
 
   useEffect(() => {
     if (!user || !id) return;
-    const fetchOrder = async () => {
-      const { data: orderData } = await supabase
-        .from("orders").select("*").eq("id", id).eq("user_id", user.id).single();
-      const { data: itemsData } = await supabase
-        .from("order_items").select("*").eq("order_id", id);
-      setOrder(orderData);
-      setItems(itemsData || []);
-      setLoading(false);
-    };
-    fetchOrder();
+    fetchData();
 
     const channel = supabase
-      .channel(`order-${id}`)
+      .channel(`order-detail-${id}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}`,
       }, (payload) => {
         const newOrder = payload.new as any;
-        const oldStatus = order?.status;
-        setOrder(newOrder);
-        // Show realtime toast when status changes
-        if (oldStatus && oldStatus !== newOrder.status) {
+        if (prevStatusRef.current && prevStatusRef.current !== newOrder.status) {
+          setStatusChanged(true);
+          setTimeout(() => setStatusChanged(false), 3000);
           const statusLabel = allStatuses.find(s => s.key === newOrder.status)?.label || newOrder.status;
-          import("sonner").then(({ toast }) => {
-            toast.success(`Order ${statusLabel}`, {
-              description: `Your order ${newOrder.order_number} has been updated to "${statusLabel}"`,
-            });
+          toast({
+            title: `🔔 Order ${statusLabel}!`,
+            description: `Your order ${newOrder.order_number} status updated to "${statusLabel}"`,
           });
         }
+        prevStatusRef.current = newOrder.status;
+        setOrder(newOrder);
       })
       .subscribe();
 
-    // Also subscribe to order_items changes
     const itemsChannel = supabase
-      .channel(`order-items-${id}`)
+      .channel(`order-items-detail-${id}`)
       .on("postgres_changes", {
         event: "*", schema: "public", table: "order_items", filter: `order_id=eq.${id}`,
       }, () => {
-        // Refetch items on any change
         supabase.from("order_items").select("*").eq("order_id", id).then(({ data }) => {
           if (data) setItems(data);
         });
@@ -75,13 +92,33 @@ const OrderDetail = () => {
     };
   }, [user, id]);
 
+  useEffect(() => {
+    if (order) prevStatusRef.current = order.status;
+  }, [order?.status]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [user, id]);
+
   const formatPrice = (p: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(p);
+
+  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-IN", { dateStyle: "medium" });
+  const formatTime = (d: string) => new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-2 border-primary/20 rounded-full" />
+            <div className="absolute inset-0 w-16 h-16 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <Package className="absolute inset-0 m-auto w-6 h-6 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground animate-pulse font-heading">Loading order...</p>
+        </div>
       </div>
     );
   }
@@ -89,7 +126,10 @@ const OrderDetail = () => {
   if (!order) {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">Order not found</p>
+        <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center border border-border">
+          <Package className="w-10 h-10 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground text-lg font-heading">Order not found</p>
         <Link to="/orders" className="text-primary hover:underline text-sm">View all orders</Link>
       </div>
     );
@@ -99,194 +139,289 @@ const OrderDetail = () => {
   const isCancelled = order.status === "cancelled";
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
+    <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-background via-background to-muted/20">
       <div className="container-main px-4 sm:px-6 lg:px-8 max-w-4xl">
-        <Link to="/orders" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Orders
+        <Link to="/orders" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Orders
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Header with separate buttons */}
+          {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="font-heading text-2xl sm:text-3xl font-bold">{order.order_number}</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="font-heading text-2xl sm:text-3xl font-black">{order.order_number}</h1>
+              <p className="text-sm text-muted-foreground mt-1">
                 Placed on {new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "long" })}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleRefresh} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 transition-all">
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+              </motion.button>
               <Link
                 to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-secondary hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 <Eye className="w-4 h-4" /> View Invoice
               </Link>
               <Link
                 to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
               >
                 <Download className="w-4 h-4" /> Download PDF
               </Link>
             </div>
           </div>
 
-          {/* Enhanced Tracking */}
+          {/* Status Change Alert */}
+          <AnimatePresence>
+            {statusChanged && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="mb-6 p-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-center gap-3"
+              >
+                <Bell className="w-5 h-5 text-primary animate-bounce" />
+                <span className="text-sm font-medium text-primary">Order status just updated!</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Vertical Timeline Tracking */}
           {!isCancelled && (
-            <div className="glass-card p-6 sm:p-8 mb-6">
+            <div className="glass-card p-6 sm:p-8 mb-6 overflow-hidden relative">
+              {/* Corner accent */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/[0.05] to-transparent pointer-events-none" />
+              
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-heading font-semibold text-lg">Order Tracking</h2>
-                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium capitalize">{order.status?.replace("_", " ")}</span>
+                <div>
+                  <h2 className="font-heading font-bold text-lg">Live Order Tracking</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Real-time updates every 30 seconds</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs text-muted-foreground font-medium">Live</span>
+                </div>
               </div>
-              <div className="relative">
-                <div className="flex justify-between">
+
+              {/* Horizontal Stepper for large screens */}
+              <div className="hidden sm:block">
+                <div className="relative flex justify-between">
                   {allStatuses.map((s, i) => {
                     const isActive = i <= currentStatusIndex;
                     const isCurrent = i === currentStatusIndex;
                     const Icon = s.icon;
+                    const tsKey = statusTimestampKeys[s.key];
+                    const timestamp = tsKey ? order[tsKey] : null;
                     return (
                       <div key={s.key} className="flex flex-col items-center flex-1 relative">
                         {i > 0 && (
-                          <div className={`absolute top-5 right-1/2 w-full h-0.5 -z-10 transition-colors duration-500 ${
-                            i <= currentStatusIndex ? "bg-primary" : "bg-muted"
+                          <div className={`absolute top-6 right-1/2 w-full h-1 -z-10 rounded-full transition-all duration-700 ${
+                            i <= currentStatusIndex
+                              ? "bg-gradient-to-r from-primary to-primary/80"
+                              : "bg-muted"
                           }`} />
                         )}
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          transition={{ delay: i * 0.1 }}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                          transition={{ delay: i * 0.08, type: "spring", stiffness: 200 }}
+                          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
                             isCurrent
-                              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-primary/20"
+                              ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl shadow-primary/40 ring-[5px] ring-primary/15 scale-110"
                               : isActive
                                 ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                                 : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-5 h-5" />
                         </motion.div>
-                        <span className={`text-[10px] sm:text-xs font-medium mt-2 text-center transition-colors ${
+                        <span className={`text-[10px] sm:text-xs font-semibold mt-2.5 text-center transition-colors ${
                           isActive ? "text-primary" : "text-muted-foreground"
                         }`}>
                           {s.label}
                         </span>
+                        {timestamp && (
+                          <span className="text-[9px] text-muted-foreground mt-0.5">{formatDate(timestamp)}</span>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
-              {/* Status Timestamps */}
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {order.created_at && (
-                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Order Placed</p>
-                    <p className="text-xs font-medium mt-1">{new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
-                  </div>
-                )}
-                {order.confirmed_at && (
-                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Confirmed</p>
-                    <p className="text-xs font-medium mt-1">{new Date(order.confirmed_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(order.confirmed_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
-                  </div>
-                )}
-                {order.shipped_at && (
-                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Shipped</p>
-                    <p className="text-xs font-medium mt-1">{new Date(order.shipped_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(order.shipped_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
-                  </div>
-                )}
-                {order.delivered_at && (
-                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
-                    <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Delivered</p>
-                    <p className="text-xs font-medium mt-1">{new Date(order.delivered_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(order.delivered_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
-                  </div>
-                )}
+
+              {/* Vertical Timeline for mobile */}
+              <div className="sm:hidden space-y-0">
+                {allStatuses.map((s, i) => {
+                  const isActive = i <= currentStatusIndex;
+                  const isCurrent = i === currentStatusIndex;
+                  const Icon = s.icon;
+                  const tsKey = statusTimestampKeys[s.key];
+                  const timestamp = tsKey ? order[tsKey] : null;
+                  return (
+                    <div key={s.key} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: i * 0.08 }}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                            isCurrent
+                              ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-primary/15"
+                              : isActive
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </motion.div>
+                        {i < allStatuses.length - 1 && (
+                          <div className={`w-0.5 h-10 transition-colors ${i < currentStatusIndex ? "bg-primary" : "bg-muted"}`} />
+                        )}
+                      </div>
+                      <div className="pb-6 pt-2">
+                        <span className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
+                        <p className="text-[11px] text-muted-foreground">{s.description}</p>
+                        {timestamp && <p className="text-[10px] text-primary mt-0.5">{formatDate(timestamp)} at {formatTime(timestamp)}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+
+              {/* Status Details Cards */}
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { label: "Placed", ts: order.created_at, active: true },
+                  { label: "Confirmed", ts: order.confirmed_at, active: !!order.confirmed_at },
+                  { label: "Shipped", ts: order.shipped_at, active: !!order.shipped_at },
+                  { label: "Delivered", ts: order.delivered_at, active: !!order.delivered_at },
+                ].map((item) => (
+                  <div key={item.label} className={`p-3 rounded-xl border transition-all ${item.active && item.ts ? "bg-primary/5 border-primary/20" : "bg-muted/20 border-border/40 opacity-50"}`}>
+                    <p className={`text-[9px] uppercase tracking-[2px] font-bold ${item.active && item.ts ? "text-primary" : "text-muted-foreground"}`}>{item.label}</p>
+                    {item.ts ? (
+                      <>
+                        <p className="text-xs font-semibold mt-1">{formatDate(item.ts)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatTime(item.ts)}</p>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground mt-1">—</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Tracking Number */}
               {order.tracking_number && (
-                <div className="mt-4 p-3 rounded-xl bg-muted/50 border border-border">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
-                    Tracking #: <span className="text-foreground font-mono font-medium">{order.tracking_number}</span>
+                    Tracking #: <span className="text-foreground font-mono font-bold">{order.tracking_number}</span>
+                  </p>
+                  <button onClick={() => { navigator.clipboard.writeText(order.tracking_number); toast({ title: "Copied!" }); }} className="text-[10px] text-primary font-semibold hover:underline">
+                    Copy
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Estimated Delivery */}
+              {order.estimated_delivery && (
+                <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <p className="text-xs text-muted-foreground">
+                    📦 Estimated delivery: <span className="text-foreground font-bold">{formatDate(order.estimated_delivery)}</span>
                   </p>
                 </div>
               )}
-              {order.estimated_delivery && (
-                <p className="text-xs text-muted-foreground mt-3">
-                  📦 Estimated delivery: <span className="text-foreground font-medium">
-                    {new Date(order.estimated_delivery).toLocaleDateString("en-IN", { dateStyle: "medium" })}
+
+              {/* Live indicator */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] text-muted-foreground">
+                    Live tracking • Updated {formatTime(order.updated_at)}
                   </span>
-                </p>
-              )}
-              {/* Last updated indicator */}
-              <div className="mt-4 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] text-muted-foreground">Live tracking • Last updated {new Date(order.updated_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                <button onClick={handleRefresh} className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-1">
+                  <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} /> Refresh now
+                </button>
               </div>
             </div>
           )}
 
+          {/* Cancelled */}
           {isCancelled && (
-            <div className="glass-card p-6 mb-6 border-destructive/30">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 mb-6 border-destructive/30 bg-destructive/5">
               <div className="flex items-center gap-3 text-destructive">
-                <XCircle className="w-6 h-6" />
-                <span className="font-heading font-semibold">Order Cancelled</span>
+                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="font-heading font-bold text-lg">Order Cancelled</span>
+                  <p className="text-xs text-destructive/70 mt-0.5">This order has been cancelled.</p>
+                </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Items */}
-          <div className="glass-card p-6 mb-6">
-            <h2 className="font-heading font-semibold text-lg mb-4">Order Items ({items.length})</h2>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 mb-6">
+            <h2 className="font-heading font-bold text-lg mb-4">Order Items ({items.length})</h2>
             <div className="space-y-3">
-              {items.map((item) => (
-                <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 hover:border-primary/20 transition-colors">
+              {items.map((item, idx) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + idx * 0.04 }}
+                  className="flex gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all group"
+                >
                   {item.product_image && (
-                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted/30 flex-shrink-0 border border-border">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted/30 flex-shrink-0 border border-border group-hover:border-primary/20 transition-colors">
                       <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm">{item.product_name}</h4>
+                    <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{item.product_name}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Qty: {item.quantity} × {formatPrice(item.price)}</p>
                   </div>
                   <span className="font-heading font-bold text-sm self-center">{formatPrice(item.price * item.quantity)}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Summary + Shipping */}
           <div className="grid sm:grid-cols-2 gap-6">
-            <div className="glass-card p-6">
-              <h2 className="font-heading font-semibold text-lg mb-4">Price Details</h2>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6">
+              <h2 className="font-heading font-bold text-lg mb-4">Price Details</h2>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">GST ({order.gst_rate}%)</span><span>{formatPrice(order.gst_amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{formatPrice(order.subtotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">GST ({order.gst_rate}%)</span><span className="font-medium">{formatPrice(order.gst_amount)}</span></div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span>{order.shipping_amount > 0 ? formatPrice(order.shipping_amount) : <span className="text-primary font-medium">Free</span>}</span>
+                  <span>{order.shipping_amount > 0 ? formatPrice(order.shipping_amount) : <span className="text-primary font-bold">FREE</span>}</span>
                 </div>
-                <div className="border-t border-border pt-3 flex justify-between font-heading font-bold text-lg">
+                <div className="border-t border-border pt-3 flex justify-between font-heading font-black text-lg">
                   <span>Total</span><span className="text-primary">{formatPrice(order.total_amount)}</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="glass-card p-6">
-              <h2 className="font-heading font-semibold text-lg mb-4">Shipping Address</h2>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p className="text-foreground font-medium">{order.shipping_name}</p>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-6">
+              <h2 className="font-heading font-bold text-lg mb-4">Shipping Address</h2>
+              <div className="text-sm text-muted-foreground space-y-1.5">
+                <p className="text-foreground font-semibold">{order.shipping_name}</p>
                 <p>{order.shipping_address}</p>
                 <p>{order.shipping_city}, {order.shipping_state} - {order.shipping_pincode}</p>
                 <p>{order.shipping_phone}</p>
               </div>
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground">Payment: <span className="text-foreground font-medium uppercase">{order.payment_method}</span></p>
-                <p className="text-xs text-muted-foreground">Status: <span className="text-foreground font-medium capitalize">{order.payment_status}</span></p>
+              <div className="mt-4 pt-4 border-t border-border space-y-1.5">
+                <p className="text-xs text-muted-foreground">Payment: <span className="text-foreground font-semibold uppercase">{order.payment_method}</span></p>
+                <p className="text-xs text-muted-foreground">
+                  Status: <span className={`font-semibold capitalize ${order.payment_status === "paid" ? "text-green-500" : "text-amber-500"}`}>{order.payment_status}</span>
+                </p>
               </div>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>
