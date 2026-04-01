@@ -38,10 +38,39 @@ const OrderDetail = () => {
       .channel(`order-${id}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}`,
-      }, (payload) => setOrder(payload.new))
+      }, (payload) => {
+        const newOrder = payload.new as any;
+        const oldStatus = order?.status;
+        setOrder(newOrder);
+        // Show realtime toast when status changes
+        if (oldStatus && oldStatus !== newOrder.status) {
+          const statusLabel = allStatuses.find(s => s.key === newOrder.status)?.label || newOrder.status;
+          import("sonner").then(({ toast }) => {
+            toast.success(`Order ${statusLabel}`, {
+              description: `Your order ${newOrder.order_number} has been updated to "${statusLabel}"`,
+            });
+          });
+        }
+      })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Also subscribe to order_items changes
+    const itemsChannel = supabase
+      .channel(`order-items-${id}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "order_items", filter: `order_id=eq.${id}`,
+      }, () => {
+        // Refetch items on any change
+        supabase.from("order_items").select("*").eq("order_id", id).then(({ data }) => {
+          if (data) setItems(data);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(itemsChannel);
+    };
   }, [user, id]);
 
   const formatPrice = (p: number) =>
