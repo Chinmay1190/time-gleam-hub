@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, FileText, Eye } from "lucide-react";
+import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,10 +40,39 @@ const OrderDetail = () => {
       .channel(`order-${id}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}`,
-      }, (payload) => setOrder(payload.new))
+      }, (payload) => {
+        const newOrder = payload.new as any;
+        const oldStatus = order?.status;
+        setOrder(newOrder);
+        // Show realtime toast when status changes
+        if (oldStatus && oldStatus !== newOrder.status) {
+          const statusLabel = allStatuses.find(s => s.key === newOrder.status)?.label || newOrder.status;
+          import("sonner").then(({ toast }) => {
+            toast.success(`Order ${statusLabel}`, {
+              description: `Your order ${newOrder.order_number} has been updated to "${statusLabel}"`,
+            });
+          });
+        }
+      })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Also subscribe to order_items changes
+    const itemsChannel = supabase
+      .channel(`order-items-${id}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "order_items", filter: `order_id=eq.${id}`,
+      }, () => {
+        // Refetch items on any change
+        supabase.from("order_items").select("*").eq("order_id", id).then(({ data }) => {
+          if (data) setItems(data);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(itemsChannel);
+    };
   }, [user, id]);
 
   const formatPrice = (p: number) =>
@@ -86,9 +117,15 @@ const OrderDetail = () => {
             <div className="flex gap-2">
               <Link
                 to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-secondary hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 <Eye className="w-4 h-4" /> View Invoice
+              </Link>
+              <Link
+                to={`/invoice/${id}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+              >
+                <Download className="w-4 h-4" /> Download PDF
               </Link>
             </div>
           </div>
@@ -137,8 +174,39 @@ const OrderDetail = () => {
                   })}
                 </div>
               </div>
+              {/* Status Timestamps */}
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {order.created_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Order Placed</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.confirmed_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Confirmed</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.confirmed_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.confirmed_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.shipped_at && (
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Shipped</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.shipped_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.shipped_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+                {order.delivered_at && (
+                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                    <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Delivered</p>
+                    <p className="text-xs font-medium mt-1">{new Date(order.delivered_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(order.delivered_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                )}
+              </div>
               {order.tracking_number && (
-                <div className="mt-5 p-3 rounded-xl bg-muted/50 border border-border">
+                <div className="mt-4 p-3 rounded-xl bg-muted/50 border border-border">
                   <p className="text-xs text-muted-foreground">
                     Tracking #: <span className="text-foreground font-mono font-medium">{order.tracking_number}</span>
                   </p>
@@ -151,6 +219,11 @@ const OrderDetail = () => {
                   </span>
                 </p>
               )}
+              {/* Last updated indicator */}
+              <div className="mt-4 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] text-muted-foreground">Live tracking • Last updated {new Date(order.updated_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
             </div>
           )}
 
