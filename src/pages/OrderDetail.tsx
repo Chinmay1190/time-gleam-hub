@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download, RefreshCw, Bell, FileText } from "lucide-react";
+import { ArrowLeft, Package, Clock, Truck, CheckCircle, MapPin, XCircle, Eye, Download, RefreshCw, Bell, FileText, Copy, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -137,6 +137,44 @@ const OrderDetail = () => {
 
   const currentStatusIndex = allStatuses.findIndex((s) => s.key === order.status);
   const isCancelled = order.status === "cancelled";
+  const completedSteps = Math.max(currentStatusIndex + 1, 1);
+  const trackingProgress = isCancelled ? 0 : Math.min((completedSteps / allStatuses.length) * 100, 100);
+  const currentStatus = allStatuses.find((s) => s.key === order.status) || allStatuses[0];
+
+  const trackingActions = [
+    {
+      label: "Refresh Status",
+      description: "Get the latest delivery movement",
+      icon: RefreshCw,
+      onClick: handleRefresh,
+      isButton: true,
+      active: refreshing,
+    },
+    {
+      label: "View Invoice",
+      description: "Open the invoice in a separate page",
+      icon: Eye,
+      to: `/invoice/${id}`,
+    },
+    {
+      label: "Download PDF",
+      description: "Save a copy of your invoice anytime",
+      icon: Download,
+      to: `/invoice/${id}?download=1`,
+    },
+    ...(order.tracking_number
+      ? [{
+          label: "Copy Tracking ID",
+          description: order.tracking_number,
+          icon: Copy,
+          onClick: async () => {
+            await navigator.clipboard.writeText(order.tracking_number);
+            toast({ title: "Tracking ID copied", description: "You can now paste it anywhere." });
+          },
+          isButton: true,
+        }]
+      : []),
+  ];
 
   return (
     <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-background via-background to-muted/20">
@@ -154,22 +192,113 @@ const OrderDetail = () => {
                 Placed on {new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "long" })}
               </p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={handleRefresh} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 transition-all">
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-              </motion.button>
-              <Link
-                to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                <Eye className="w-4 h-4" /> View Invoice
-              </Link>
-              <Link
-                to={`/invoice/${id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
-              >
-                <Download className="w-4 h-4" /> Download PDF
-              </Link>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-4 py-2 text-xs font-semibold text-muted-foreground backdrop-blur-sm">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              Tracking dashboard
+            </div>
+          </div>
+
+          <div className="grid gap-4 mb-6 lg:grid-cols-[1.35fr_1fr]">
+            <div className="glass-card premium-border p-6 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Current status</p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                      <currentStatus.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-heading text-xl font-bold">{currentStatus.label}</h2>
+                      <p className="text-sm text-muted-foreground">{currentStatus.description}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:min-w-[240px]">
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Progress</p>
+                    <p className="mt-1 font-heading text-2xl font-black text-primary">{Math.round(trackingProgress)}%</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Updated</p>
+                    <p className="mt-1 text-sm font-semibold">{formatTime(order.updated_at)}</p>
+                    <p className="text-[11px] text-muted-foreground">Live status sync</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-accent"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${trackingProgress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
+                  <div className="h-2 w-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
+                  Live updates enabled
+                </span>
+                {order.estimated_delivery && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
+                    <Truck className="w-3.5 h-3.5 text-primary" />
+                    Delivery by {formatDate(order.estimated_delivery)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="glass-card p-5">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-heading text-lg font-bold">Tracking Options</h2>
+                  <p className="text-xs text-muted-foreground">Quick actions for this order</p>
+                </div>
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+
+              <div className="space-y-2.5">
+                {trackingActions.map((action) => {
+                  const Icon = action.icon;
+
+                  if (action.isButton) {
+                    return (
+                      <button
+                        key={action.label}
+                        onClick={action.onClick}
+                        className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/40"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/80 text-primary">
+                          <Icon className={`w-4 h-4 ${action.active ? "animate-spin" : ""}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{action.label}</p>
+                          <p className="truncate text-xs text-muted-foreground">{action.description}</p>
+                        </div>
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={action.label}
+                      to={action.to!}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/40"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/80 text-primary">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{action.label}</p>
+                        <p className="truncate text-xs text-muted-foreground">{action.description}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -199,8 +328,8 @@ const OrderDetail = () => {
                   <h2 className="font-heading font-bold text-lg">Live Order Tracking</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Real-time updates every 30 seconds</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
                   <span className="text-xs text-muted-foreground font-medium">Live</span>
                 </div>
               </div>
@@ -336,7 +465,7 @@ const OrderDetail = () => {
               {/* Live indicator */}
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-[hsl(var(--success))] animate-pulse" />
                   <span className="text-[10px] text-muted-foreground">
                     Live tracking • Updated {formatTime(order.updated_at)}
                   </span>
@@ -416,9 +545,9 @@ const OrderDetail = () => {
                 <p>{order.shipping_phone}</p>
               </div>
               <div className="mt-4 pt-4 border-t border-border space-y-1.5">
-                <p className="text-xs text-muted-foreground">Payment: <span className="text-foreground font-semibold uppercase">{order.payment_method}</span></p>
+                  <p className="text-xs text-muted-foreground">Payment: <span className="text-foreground font-semibold uppercase">{order.payment_method}</span></p>
                 <p className="text-xs text-muted-foreground">
-                  Status: <span className={`font-semibold capitalize ${order.payment_status === "paid" ? "text-green-500" : "text-amber-500"}`}>{order.payment_status}</span>
+                    Status: <span className="font-semibold capitalize" style={{ color: order.payment_status === "paid" ? "hsl(var(--success))" : "hsl(var(--primary))" }}>{order.payment_status}</span>
                 </p>
               </div>
             </motion.div>
