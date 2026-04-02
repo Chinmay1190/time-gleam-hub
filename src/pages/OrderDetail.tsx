@@ -22,6 +22,8 @@ const statusTimestampKeys: Record<string, string> = {
   delivered: "delivered_at",
 };
 
+const deliverySimulationFlow = ["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
+
 const OrderDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -31,6 +33,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statusChanged, setStatusChanged] = useState(false);
+  const [simulatingDelivery, setSimulatingDelivery] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
 
   const fetchData = async () => {
@@ -108,6 +111,97 @@ const OrderDetail = () => {
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-IN", { dateStyle: "medium" });
   const formatTime = (d: string) => new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
+  const getNextSimulatedStatus = (status: string) => {
+    const currentIndex = deliverySimulationFlow.indexOf(status);
+
+    if (currentIndex === -1 || currentIndex >= deliverySimulationFlow.length - 1) {
+      return null;
+    }
+
+    return deliverySimulationFlow[currentIndex + 1];
+  };
+
+  const handleSimulateDelivery = async () => {
+    if (!user || !id || !order || simulatingDelivery) return;
+
+    const nextStatus = getNextSimulatedStatus(order.status);
+
+    if (!nextStatus) {
+      toast({
+        title: order.status === "delivered" ? "Already delivered" : "Simulation unavailable",
+        description: order.status === "cancelled"
+          ? "Cancelled orders cannot be advanced."
+          : "This order is already at the final delivery step.",
+      });
+      return;
+    }
+
+    setSimulatingDelivery(true);
+
+    try {
+      const now = new Date().toISOString();
+      const nextLabel = allStatuses.find((status) => status.key === nextStatus)?.label || nextStatus;
+      const updates: Record<string, string> = {
+        status: nextStatus,
+        updated_at: now,
+      };
+
+      if (nextStatus === "confirmed" && !order.confirmed_at) {
+        updates.confirmed_at = now;
+      }
+
+      if ((nextStatus === "shipped" || nextStatus === "out_for_delivery" || nextStatus === "delivered") && !order.confirmed_at) {
+        updates.confirmed_at = now;
+      }
+
+      if ((nextStatus === "shipped" || nextStatus === "out_for_delivery" || nextStatus === "delivered") && !order.shipped_at) {
+        updates.shipped_at = now;
+      }
+
+      if (nextStatus === "out_for_delivery" && !order.estimated_delivery) {
+        updates.estimated_delivery = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      }
+
+      if (nextStatus === "delivered") {
+        updates.delivered_at = now;
+        if (!order.estimated_delivery) {
+          updates.estimated_delivery = now;
+        }
+      }
+
+      if ((nextStatus === "shipped" || nextStatus === "out_for_delivery" || nextStatus === "delivered") && !order.tracking_number) {
+        updates.tracking_number = `TRK-${(order.order_number || id).replace(/[^A-Za-z0-9]/g, "").slice(-10).toUpperCase()}`;
+      }
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update(updates)
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setOrder(data);
+      }
+
+      toast({
+        title: "Simulation updated",
+        description: `This order moved to ${nextLabel} without affecting other options.`,
+      });
+    } catch {
+      toast({
+        title: "Simulation failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSimulatingDelivery(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
@@ -140,6 +234,10 @@ const OrderDetail = () => {
   const completedSteps = Math.max(currentStatusIndex + 1, 1);
   const trackingProgress = isCancelled ? 0 : Math.min((completedSteps / allStatuses.length) * 100, 100);
   const currentStatus = allStatuses.find((s) => s.key === order.status) || allStatuses[0];
+  const nextSimulatedStatus = getNextSimulatedStatus(order.status);
+  const nextSimulatedLabel = nextSimulatedStatus
+    ? allStatuses.find((status) => status.key === nextSimulatedStatus)?.label || nextSimulatedStatus
+    : null;
 
   const trackingActions = [
     {
@@ -149,6 +247,19 @@ const OrderDetail = () => {
       onClick: handleRefresh,
       isButton: true,
       active: refreshing,
+    },
+    {
+      label: "Simulate Delivery",
+      description: nextSimulatedLabel
+        ? `Move this order to ${nextSimulatedLabel}`
+        : order.status === "cancelled"
+          ? "Cancelled orders cannot be simulated"
+          : "This order has completed the delivery flow",
+      icon: Truck,
+      onClick: handleSimulateDelivery,
+      isButton: true,
+      active: simulatingDelivery,
+      disabled: !nextSimulatedStatus || simulatingDelivery,
     },
     {
       label: "View Invoice",
@@ -269,7 +380,8 @@ const OrderDetail = () => {
                       <button
                         key={action.label}
                         onClick={action.onClick}
-                        className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/40"
+                        disabled={action.disabled}
+                        className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/80 text-primary">
                           <Icon className={`w-4 h-4 ${action.active ? "animate-spin" : ""}`} />
