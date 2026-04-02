@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, Printer, Clock, CreditCard, MapPin, Receipt, Sparkles, CheckCircle2, Share2, Shield, Hash, Phone, Mail, Globe, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -10,12 +10,14 @@ import html2canvas from "html2canvas";
 
 const Invoice = () => {
   const { id } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const autoDownloadTriggered = useRef(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -34,45 +36,102 @@ const Invoice = () => {
   const formatPrice = (p: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(p);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
+    if (!order) return;
+
     setDownloading(true);
+    let container: HTMLDivElement | null = null;
+
     try {
-      const container = document.createElement("div");
+      container = document.createElement("div");
       container.style.position = "fixed";
       container.style.left = "-9999px";
       container.style.top = "0";
-      container.style.width = "800px";
-      container.style.background = "#fff";
+      container.style.width = "794px";
+      container.style.padding = "0";
+      container.style.background = "#ffffff";
       container.innerHTML = generateInvoiceHTMLForPDF(order, items);
       document.body.appendChild(container);
-      await new Promise((r) => setTimeout(r, 500));
-      const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#ffffff", width: 800 });
-      document.body.removeChild(container);
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width: container.scrollWidth,
+        windowWidth: container.scrollWidth,
+      });
+
       const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = 210;
       const pageHeight = 297;
-      if (imgHeight <= pageHeight) {
-        pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
-      } else {
-        let pos = 0;
-        let rem = imgHeight;
-        while (rem > 0) {
-          pdf.addImage(imgData, "JPEG", 0, pos, imgWidth, imgHeight);
-          rem -= pageHeight;
-          pos -= pageHeight;
-          if (rem > 0) pdf.addPage();
-        }
+      const margin = 10;
+      const printableWidth = pageWidth - margin * 2;
+      const printableHeight = pageHeight - margin * 2;
+      const pageHeightInPixels = Math.floor((printableHeight * canvas.width) / printableWidth);
+      const pageCanvas = document.createElement("canvas");
+      const pageContext = pageCanvas.getContext("2d");
+
+      if (!pageContext) {
+        throw new Error("Canvas context unavailable");
       }
+
+      let renderedHeight = 0;
+      let pageIndex = 0;
+
+      while (renderedHeight < canvas.height) {
+        const sliceHeight = Math.min(pageHeightInPixels, canvas.height - renderedHeight);
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+
+        pageContext.fillStyle = "#ffffff";
+        pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        pageContext.drawImage(
+          canvas,
+          0,
+          renderedHeight,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          pageCanvas.width,
+          pageCanvas.height,
+        );
+
+        const pageImage = pageCanvas.toDataURL("image/jpeg", 0.98);
+        const renderedPageHeight = (pageCanvas.height * printableWidth) / pageCanvas.width;
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(pageImage, "JPEG", margin, margin, printableWidth, renderedPageHeight);
+
+        renderedHeight += sliceHeight;
+        pageIndex += 1;
+      }
+
       pdf.save(`ChronoHub-Invoice-${order.order_number || "order"}.pdf`);
       toast({ title: "✅ Invoice Downloaded!", description: `Saved as PDF — viewable on any device` });
     } catch {
       toast({ title: "Download failed", description: "Please try the Print option instead", variant: "destructive" });
     } finally {
+      if (container && document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
       setDownloading(false);
     }
-  };
+  }, [items, order, toast]);
+
+  useEffect(() => {
+    const shouldAutoDownload = new URLSearchParams(location.search).get("download") === "1";
+
+    if (order && shouldAutoDownload && !autoDownloadTriggered.current && !downloading) {
+      autoDownloadTriggered.current = true;
+      void handleDownload();
+    }
+  }, [downloading, handleDownload, location.search, order]);
 
   const handlePrint = () => {
     const html = generatePrintHTML(order, items);
@@ -120,6 +179,37 @@ const Invoice = () => {
   const orderDate = new Date(order.created_at).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
   const orderTime = new Date(order.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
   const isPaid = order.payment_status === "paid";
+  const paymentBadgeStyle = isPaid
+    ? {
+        backgroundColor: "hsl(var(--success) / 0.12)",
+        color: "hsl(var(--success))",
+        borderColor: "hsl(var(--success) / 0.2)",
+      }
+    : {
+        backgroundColor: "hsl(var(--primary) / 0.12)",
+        color: "hsl(var(--primary))",
+        borderColor: "hsl(var(--primary) / 0.2)",
+      };
+  const invoiceHighlights = [
+    {
+      label: "Invoice status",
+      value: isPaid ? "Paid invoice" : "Payment pending",
+      meta: `Issued ${orderDate}`,
+      icon: CheckCircle2,
+    },
+    {
+      label: "Document ID",
+      value: invoiceNumber,
+      meta: `Order ${order.order_number}`,
+      icon: Receipt,
+    },
+    {
+      label: "Export ready",
+      value: formatPrice(order.total_amount),
+      meta: "Optimized for print and PDF",
+      icon: Download,
+    },
+  ];
 
   return (
     <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-background via-background to-muted/20">
@@ -149,6 +239,38 @@ const Invoice = () => {
               )}
             </motion.button>
           </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="grid gap-4 mb-8 md:grid-cols-3"
+        >
+          {invoiceHighlights.map((highlight, index) => {
+            const Icon = highlight.icon;
+
+            return (
+              <motion.div
+                key={highlight.label}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 + index * 0.05 }}
+                className="glass-card premium-border p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{highlight.label}</p>
+                    <p className="mt-3 font-heading text-xl font-black leading-tight">{highlight.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{highlight.meta}</p>
+                  </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
 
         {/* Invoice Card */}
@@ -201,7 +323,7 @@ const Invoice = () => {
                 </div>
                 {/* Payment badge */}
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${isPaid ? 'bg-green-500/15 text-green-600 border border-green-500/20' : 'bg-amber-500/15 text-amber-600 border border-amber-500/20'}`}>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border text-xs font-bold shadow-sm" style={paymentBadgeStyle}>
                     {isPaid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
                     {isPaid ? "PAID" : "PAYMENT PENDING"}
                   </span>
@@ -399,134 +521,158 @@ function generateInvoiceHTMLForPDF(order: any, items: any[]) {
   const formatPrice = (p: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(p);
   const isPaid = order.payment_status === "paid";
   const orderDate = new Date(order.created_at).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+  const orderTime = new Date(order.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const invoiceNumber = `INV-${order.order_number?.replace("ORD-", "")}`;
+  const statusLabel = (order.status || "pending").replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase());
+  const paymentBg = isPaid ? "hsl(142 76% 96%)" : "hsl(48 100% 96%)";
+  const paymentColor = isPaid ? "hsl(142 72% 29%)" : "hsl(32 95% 44%)";
   const rows = items.map((item, i) => `
-    <tr style="border-bottom:1px solid #f0f0f0;">
-      <td style="padding:14px 18px;color:#bbb;font-size:12px;font-family:monospace;">${String(i+1).padStart(2,'0')}</td>
-      <td style="padding:14px 18px;font-weight:700;color:#1a1a1a;font-size:13px;">${item.product_name}</td>
-      <td style="padding:14px 18px;text-align:center;font-size:13px;font-weight:600;">${item.quantity}</td>
-      <td style="padding:14px 18px;text-align:right;color:#888;font-size:12px;">${formatPrice(item.price)}</td>
-      <td style="padding:14px 18px;text-align:right;font-weight:700;color:#1a1a1a;font-size:13px;">${formatPrice(item.price * item.quantity)}</td>
+    <tr style="border-bottom:1px solid hsl(40 14% 92%);">
+      <td style="padding:16px 18px;color:hsl(220 9% 46%);font-size:12px;font-family:monospace;">${String(i + 1).padStart(2, "0")}</td>
+      <td style="padding:16px 18px;">
+        <div style="font-weight:700;color:hsl(222 24% 14%);font-size:13px;">${item.product_name}</div>
+        <div style="font-size:11px;color:hsl(220 9% 46%);margin-top:4px;">Product ID: ${item.product_id}</div>
+      </td>
+      <td style="padding:16px 18px;text-align:center;font-size:13px;font-weight:700;color:hsl(222 24% 14%);">${item.quantity}</td>
+      <td style="padding:16px 18px;text-align:right;color:hsl(220 9% 46%);font-size:12px;">${formatPrice(item.price)}</td>
+      <td style="padding:16px 18px;text-align:right;font-weight:800;color:hsl(222 24% 14%);font-size:13px;">${formatPrice(item.price * item.quantity)}</td>
     </tr>
   `).join("");
 
   return `
-  <div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;width:800px;background:#fff;">
-    <div style="height:6px;background:linear-gradient(90deg,#c9861a,#daa54a,rgba(201,134,26,0.3));"></div>
-    <div style="padding:44px 48px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:16px;">
-          <div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#c9861a,#daa54a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:900;">C</div>
-          <div>
-            <div style="font-size:28px;font-weight:900;letter-spacing:-1px;">Chrono<span style="color:#c9861a;">Hub</span></div>
-            <div style="font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:4px;margin-top:2px;">Premium Smart Watches</div>
+  <div style="font-family:Arial,Helvetica,sans-serif;color:hsl(222 24% 14%);width:794px;background:linear-gradient(180deg,hsl(40 33% 98%),hsl(0 0% 100%));">
+    <div style="padding:28px;">
+      <div style="background:hsl(0 0% 100%);border:1px solid hsl(40 18% 90%);border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.08);position:relative;">
+        <div style="height:6px;background:linear-gradient(90deg,hsl(38 72% 46%),hsl(42 78% 60%),hsl(38 72% 46%));"></div>
+        <div style="position:absolute;top:42px;right:36px;font-size:88px;font-weight:900;color:hsla(38,72%,46%,0.05);letter-spacing:0.28em;transform:rotate(-18deg);">CH</div>
+        <div style="padding:34px 34px 30px;position:relative;z-index:1;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px;">
+            <div>
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,hsl(38 72% 46%),hsl(42 78% 60%));display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:900;box-shadow:0 16px 36px hsla(38,72%,46%,0.28);">C</div>
+                <div>
+                  <div style="font-size:30px;font-weight:900;letter-spacing:-0.03em;line-height:1;">Chrono<span style="color:hsl(38 72% 46%);">Hub</span></div>
+                  <div style="font-size:9px;color:hsl(220 9% 46%);text-transform:uppercase;letter-spacing:0.34em;margin-top:6px;">Premium Smart Watches</div>
+                </div>
+              </div>
+              <div style="margin-top:18px;font-size:11px;line-height:1.8;color:hsl(220 9% 46%);">
+                GSTIN: 27AABCT1234A1ZA<br />
+                hello@chronohub.in • +91 98765 43210<br />
+                chronohub.in
+              </div>
+            </div>
+            <div style="min-width:220px;text-align:right;">
+              <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;background:hsl(38 72% 46% / 0.08);border:1px solid hsl(38 72% 46% / 0.14);color:hsl(38 72% 46%);font-size:11px;font-weight:800;letter-spacing:0.26em;text-transform:uppercase;">Tax Invoice</div>
+              <div style="margin-top:14px;font-size:22px;font-weight:900;letter-spacing:-0.03em;">${invoiceNumber}</div>
+              <div style="margin-top:6px;font-size:12px;color:hsl(220 9% 46%);">${orderDate} • ${orderTime}</div>
+              <div style="margin-top:12px;display:inline-flex;align-items:center;padding:6px 14px;border-radius:999px;background:${paymentBg};color:${paymentColor};font-size:11px;font-weight:800;border:1px solid ${paymentColor}22;">
+                ${isPaid ? "Paid" : "Payment Pending"}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px;">
+            <div style="padding:16px 18px;border-radius:18px;background:hsl(40 33% 98%);border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(220 9% 46%);">Invoice status</div>
+              <div style="margin-top:8px;font-size:18px;font-weight:800;">${isPaid ? "Paid invoice" : "Awaiting payment"}</div>
+              <div style="margin-top:4px;font-size:11px;color:hsl(220 9% 46%);">Stored in a device-friendly PDF layout</div>
+            </div>
+            <div style="padding:16px 18px;border-radius:18px;background:hsl(40 33% 98%);border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(220 9% 46%);">Order status</div>
+              <div style="margin-top:8px;font-size:18px;font-weight:800;">${statusLabel}</div>
+              <div style="margin-top:4px;font-size:11px;color:hsl(220 9% 46%);">Order ${order.order_number}</div>
+            </div>
+            <div style="padding:16px 18px;border-radius:18px;background:hsl(40 33% 98%);border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(220 9% 46%);">Grand total</div>
+              <div style="margin-top:8px;font-size:18px;font-weight:800;color:hsl(38 72% 46%);">${formatPrice(order.total_amount)}</div>
+              <div style="margin-top:4px;font-size:11px;color:hsl(220 9% 46%);">Includes taxes and shipping</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:22px;">
+            <div style="padding:20px;border-radius:22px;background:linear-gradient(180deg,hsl(40 33% 98%),hsl(0 0% 100%));border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;color:hsl(38 72% 46%);text-transform:uppercase;letter-spacing:0.24em;font-weight:800;margin-bottom:14px;">Bill To</div>
+              <div style="font-size:15px;font-weight:800;margin-bottom:8px;">${order.shipping_name}</div>
+              <div style="font-size:12px;color:hsl(220 9% 46%);line-height:1.7;">${order.shipping_address}<br />${order.shipping_city}, ${order.shipping_state} — ${order.shipping_pincode}</div>
+              <div style="margin-top:10px;font-size:12px;color:hsl(220 9% 46%);">Phone: ${order.shipping_phone}</div>
+            </div>
+            <div style="padding:20px;border-radius:22px;background:linear-gradient(180deg,hsl(40 33% 98%),hsl(0 0% 100%));border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;color:hsl(38 72% 46%);text-transform:uppercase;letter-spacing:0.24em;font-weight:800;margin-bottom:14px;">Order Info</div>
+              <table style="width:100%;border-collapse:collapse;">
+                <tbody>
+                  <tr><td style="padding:5px 0;font-size:12px;color:hsl(220 9% 46%);">Order No.</td><td style="padding:5px 0;font-size:12px;text-align:right;font-weight:700;">${order.order_number}</td></tr>
+                  <tr><td style="padding:5px 0;font-size:12px;color:hsl(220 9% 46%);">Payment Mode</td><td style="padding:5px 0;font-size:12px;text-align:right;font-weight:700;text-transform:uppercase;">${order.payment_method}</td></tr>
+                  <tr><td style="padding:5px 0;font-size:12px;color:hsl(220 9% 46%);">Tracking ID</td><td style="padding:5px 0;font-size:12px;text-align:right;font-weight:700;">${order.tracking_number || "Generated on shipment"}</td></tr>
+                  <tr><td style="padding:5px 0;font-size:12px;color:hsl(220 9% 46%);">Issue Date</td><td style="padding:5px 0;font-size:12px;text-align:right;font-weight:700;">${orderDate}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="border:1px solid hsl(40 18% 90%);border-radius:22px;overflow:hidden;margin-bottom:22px;background:hsl(0 0% 100%);">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:linear-gradient(90deg,hsl(38 72% 46% / 0.10),hsl(38 72% 46% / 0.03));">
+                  <th style="padding:14px 18px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(38 72% 46%);font-weight:800;">Sr.</th>
+                  <th style="padding:14px 18px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(38 72% 46%);font-weight:800;">Product</th>
+                  <th style="padding:14px 18px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(38 72% 46%);font-weight:800;">Qty</th>
+                  <th style="padding:14px 18px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(38 72% 46%);font-weight:800;">Rate</th>
+                  <th style="padding:14px 18px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(38 72% 46%);font-weight:800;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:14px;align-items:start;">
+            <div style="padding:18px 20px;border-radius:20px;background:hsl(40 33% 98%);border:1px solid hsl(40 18% 92%);">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:hsl(220 9% 46%);font-weight:800;">Invoice Notes</div>
+              <div style="margin-top:12px;font-size:12px;line-height:1.8;color:hsl(220 9% 46%);">
+                Amount in words: <strong style="color:hsl(222 24% 14%);font-style:italic;">${numberToWords(Math.floor(order.total_amount))} Rupees Only</strong><br />
+                Products are covered under manufacturer warranty and this invoice remains valid for service and returns verification.
+              </div>
+            </div>
+            <div style="padding:20px;border-radius:20px;background:linear-gradient(180deg,hsl(40 33% 98%),hsl(0 0% 100%));border:1px solid hsl(40 18% 92%);">
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:hsl(220 9% 46%);">Subtotal</span><span style="font-weight:700;">${formatPrice(order.subtotal)}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:hsl(220 9% 46%);">CGST (${order.gst_rate / 2}%)</span><span>${formatPrice(order.gst_amount / 2)}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:hsl(220 9% 46%);">SGST (${order.gst_rate / 2}%)</span><span>${formatPrice(order.gst_amount / 2)}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:hsl(220 9% 46%);">Shipping</span><span style="font-weight:700;color:hsl(38 72% 46%);">${order.shipping_amount > 0 ? formatPrice(order.shipping_amount) : "FREE"}</span></div>
+              <div style="height:2px;background:linear-gradient(90deg,hsl(38 72% 46%),transparent);margin:12px 0 14px;border-radius:999px;"></div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div>
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:hsl(220 9% 46%);">Grand Total</div>
+                  <div style="font-size:28px;font-weight:900;line-height:1;color:hsl(38 72% 46%);margin-top:6px;">${formatPrice(order.total_amount)}</div>
+                </div>
+                <div style="font-size:10px;color:hsl(220 9% 46%);">Incl. all taxes</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:22px;padding-top:18px;border-top:1px solid hsl(40 18% 92%);display:flex;justify-content:space-between;align-items:center;gap:16px;">
+            <div>
+              <div style="font-size:12px;color:hsl(222 24% 14%);font-weight:700;">Thank you for choosing ChronoHub</div>
+              <div style="margin-top:4px;font-size:10px;color:hsl(220 9% 46%);">Computer-generated invoice • Valid for print, PDF storage, and mobile viewing</div>
+            </div>
+            <div style="text-align:right;font-size:10px;color:hsl(220 9% 46%);line-height:1.7;">
+              hello@chronohub.in<br />
+              +91 98765 43210<br />
+              chronohub.in
+            </div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <div style="display:inline-block;background:rgba(201,134,26,0.08);padding:8px 18px;border-radius:10px;border:1px solid rgba(201,134,26,0.15);margin-bottom:10px;">
-            <span style="color:#c9861a;font-size:11px;font-weight:800;letter-spacing:4px;">TAX INVOICE</span>
-          </div>
-          <div style="font-size:16px;font-weight:900;">#INV-${order.order_number?.replace("ORD-","")}</div>
-          <div style="font-size:11px;color:#999;margin-top:4px;">${orderDate}</div>
-          <div style="margin-top:8px;display:inline-block;background:${isPaid?'#ecfdf5':'#fffbeb'};color:${isPaid?'#059669':'#d97706'};padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;">${isPaid?'✓ PAID':'⏳ PENDING'}</div>
-        </div>
       </div>
-      <div style="height:1px;background:linear-gradient(90deg,#c9861a40,#eee,#c9861a40);margin:20px 0;"></div>
-      <div style="display:flex;gap:16px;margin-bottom:28px;">
-        <div style="flex:1;background:linear-gradient(135deg,#fafafa,#f8f8f8);border:1px solid #eee;border-radius:14px;padding:22px;">
-          <div style="font-size:9px;color:#c9861a;text-transform:uppercase;letter-spacing:3px;font-weight:800;margin-bottom:14px;">Bill To</div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:5px;">${order.shipping_name}</div>
-          <div style="font-size:11px;color:#777;line-height:1.8;">${order.shipping_address}<br/>${order.shipping_city}, ${order.shipping_state} — ${order.shipping_pincode}</div>
-          <div style="font-size:11px;color:#777;margin-top:6px;">📞 ${order.shipping_phone}</div>
-        </div>
-        <div style="flex:1;background:linear-gradient(135deg,#fafafa,#f8f8f8);border:1px solid #eee;border-radius:14px;padding:22px;">
-          <div style="font-size:9px;color:#c9861a;text-transform:uppercase;letter-spacing:3px;font-weight:800;margin-bottom:14px;">Order Info</div>
-          <table style="width:100%;border-collapse:collapse;"><tbody>
-            <tr><td style="padding:4px 0;font-size:11px;color:#aaa;">Order No.</td><td style="padding:4px 0;font-size:12px;font-weight:700;text-align:right;">${order.order_number}</td></tr>
-            <tr><td style="padding:4px 0;font-size:11px;color:#aaa;">Payment</td><td style="padding:4px 0;font-size:12px;font-weight:600;text-align:right;text-transform:uppercase;">${order.payment_method}</td></tr>
-            <tr><td style="padding:4px 0;font-size:11px;color:#aaa;">GSTIN</td><td style="padding:4px 0;font-size:11px;text-align:right;color:#999;">27AABCT1234A1ZA</td></tr>
-          </tbody></table>
-        </div>
-      </div>
-      <div style="border:1px solid #eee;border-radius:14px;overflow:hidden;margin-bottom:28px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:linear-gradient(90deg,rgba(201,134,26,0.08),rgba(201,134,26,0.02));">
-            <th style="padding:14px 18px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#c9861a;font-weight:800;">Sr.</th>
-            <th style="padding:14px 18px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#c9861a;font-weight:800;">Product</th>
-            <th style="padding:14px 18px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#c9861a;font-weight:800;">Qty</th>
-            <th style="padding:14px 18px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#c9861a;font-weight:800;">Rate</th>
-            <th style="padding:14px 18px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#c9861a;font-weight:800;">Amount</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div style="display:flex;justify-content:flex-end;">
-        <div style="width:300px;background:linear-gradient(135deg,#fafafa,#fff);border:1px solid #eee;border-radius:14px;padding:22px;">
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:#888;">Subtotal</span><span style="font-weight:600;">${formatPrice(order.subtotal)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:#888;">CGST (${order.gst_rate/2}%)</span><span>${formatPrice(order.gst_amount/2)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:#888;">SGST (${order.gst_rate/2}%)</span><span>${formatPrice(order.gst_amount/2)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="color:#888;">Shipping</span><span style="color:#c9861a;font-weight:700;">${order.shipping_amount>0?formatPrice(order.shipping_amount):'FREE'}</span></div>
-          <div style="height:2px;background:linear-gradient(90deg,#c9861a,rgba(201,134,26,0.2));margin:12px 0;border-radius:1px;"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-            <span style="font-weight:800;font-size:13px;">Grand Total</span>
-            <span style="font-weight:900;font-size:24px;color:#c9861a;">${formatPrice(order.total_amount)}</span>
-          </div>
-        </div>
-      </div>
-      <div style="background:rgba(201,134,26,0.05);border-left:4px solid #c9861a;padding:12px 16px;border-radius:0 10px 10px 0;margin-top:24px;">
-        <span style="font-size:11px;color:#777;"><strong style="color:#333;">Amount in words:</strong> <em>${numberToWords(Math.floor(order.total_amount))} Rupees Only</em></span>
-      </div>
-      <div style="margin-top:20px;padding:14px;background:#fafafa;border-radius:10px;border:1px solid #f0f0f0;">
-        <div style="font-size:9px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Terms & Conditions</div>
-        <div style="font-size:9px;color:#bbb;line-height:1.7;">• Products covered under manufacturer warranty. • Returns within 7 days of delivery. • Computer-generated invoice — no signature required.</div>
-      </div>
-    </div>
-    <div style="text-align:center;padding:20px 48px 28px;border-top:1px solid #f0f0f0;">
-      <div style="font-size:11px;color:#777;">Thank you for choosing <strong style="color:#1a1a1a;">ChronoHub</strong></div>
-      <div style="font-size:9px;color:#ccc;margin-top:4px;">hello@chronohub.in | +91 98765 43210 | chronohub.in</div>
     </div>
   </div>`;
 }
 
 function generatePrintHTML(order: any, items: any[]) {
-  const formatPrice = (p: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(p);
-  const isPaid = order.payment_status === "paid";
-  const orderDate = new Date(order.created_at).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
-  const rows = items.map((item, i) => `
-    <tr style="border-bottom:1px solid #eee;">
-      <td style="padding:14px 18px;color:#aaa;font-size:12px;">${i+1}</td>
-      <td style="padding:14px 18px;font-weight:700;color:#1a1a1a;font-size:13px;">${item.product_name}</td>
-      <td style="padding:14px 18px;text-align:center;font-size:13px;font-weight:600;">${item.quantity}</td>
-      <td style="padding:14px 18px;text-align:right;color:#888;font-size:12px;">${formatPrice(item.price)}</td>
-      <td style="padding:14px 18px;text-align:right;font-weight:700;font-size:13px;">${formatPrice(item.price*item.quantity)}</td>
-    </tr>`).join("");
-
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice ${order.order_number}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#fff;color:#1a1a1a}
-.page{max-width:800px;margin:0 auto;padding:40px}table{width:100%;border-collapse:collapse}
-th{background:rgba(201,134,26,0.06);padding:12px 18px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#c9861a;font-weight:700}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
-<body><div class="page">
-<div style="display:flex;justify-content:space-between;margin-bottom:24px">
-<div><div style="font-size:26px;font-weight:900">Chrono<span style="color:#c9861a">Hub</span></div><div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:3px">Premium Smart Watches</div></div>
-<div style="text-align:right"><div style="color:#c9861a;font-size:11px;font-weight:700;letter-spacing:3px">TAX INVOICE</div><div style="font-size:15px;font-weight:900;margin-top:4px">#INV-${order.order_number?.replace("ORD-","")}</div><div style="font-size:11px;color:#999;margin-top:2px">${orderDate}</div></div>
-</div>
-<hr style="border:none;height:1px;background:#eee;margin:16px 0">
-<div style="display:flex;gap:16px;margin-bottom:24px">
-<div style="flex:1;background:#fafafa;border:1px solid #eee;border-radius:10px;padding:18px"><div style="font-size:9px;color:#c9861a;letter-spacing:2px;font-weight:700;margin-bottom:10px">BILL TO</div><div style="font-weight:700;font-size:14px">${order.shipping_name}</div><div style="font-size:11px;color:#777;line-height:1.7;margin-top:4px">${order.shipping_address}<br>${order.shipping_city}, ${order.shipping_state} — ${order.shipping_pincode}<br>Phone: ${order.shipping_phone}</div></div>
-<div style="flex:1;background:#fafafa;border:1px solid #eee;border-radius:10px;padding:18px"><div style="font-size:9px;color:#c9861a;letter-spacing:2px;font-weight:700;margin-bottom:10px">ORDER INFO</div><table><tr><td style="padding:3px 0;font-size:11px;color:#aaa">Order No.</td><td style="text-align:right;font-size:12px;font-weight:700">${order.order_number}</td></tr><tr><td style="padding:3px 0;font-size:11px;color:#aaa">Payment</td><td style="text-align:right;font-size:12px;font-weight:600;text-transform:uppercase">${order.payment_method}</td></tr><tr><td style="padding:3px 0;font-size:11px;color:#aaa">Status</td><td style="text-align:right"><span style="background:${isPaid?'#ecfdf5':'#fffbeb'};color:${isPaid?'#059669':'#d97706'};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">${isPaid?'Paid':'Pending'}</span></td></tr></table></div>
-</div>
-<div style="border:1px solid #eee;border-radius:10px;overflow:hidden;margin-bottom:24px"><table><thead><tr><th>#</th><th>Product</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table></div>
-<div style="display:flex;justify-content:flex-end"><div style="width:280px;background:#fafafa;border:1px solid #eee;border-radius:10px;padding:18px">
-<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:#888">Subtotal</span><span style="font-weight:600">${formatPrice(order.subtotal)}</span></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:#888">CGST (${order.gst_rate/2}%)</span><span>${formatPrice(order.gst_amount/2)}</span></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:#888">SGST (${order.gst_rate/2}%)</span><span>${formatPrice(order.gst_amount/2)}</span></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:#888">Shipping</span><span style="color:#c9861a;font-weight:600">${order.shipping_amount>0?formatPrice(order.shipping_amount):'Free'}</span></div>
-<hr style="border:none;height:2px;background:#c9861a;margin:10px 0;opacity:0.3">
-<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:14px">Total</span><span style="font-weight:900;font-size:22px;color:#c9861a">${formatPrice(order.total_amount)}</span></div>
-</div></div>
-<div style="margin-top:20px;padding:10px 14px;border-left:3px solid #c9861a;background:rgba(201,134,26,0.04);border-radius:0 8px 8px 0"><span style="font-size:11px;color:#777"><strong style="color:#333">Amount in words:</strong> ${numberToWords(Math.floor(order.total_amount))} Rupees Only</span></div>
-<div style="text-align:center;margin-top:32px;padding-top:20px;border-top:1px solid #eee"><p style="font-size:11px;color:#777">Thank you for choosing <strong>ChronoHub</strong></p><p style="font-size:9px;color:#ccc;margin-top:4px">Computer-generated invoice — no signature required</p></div>
-</div></body></html>`;
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111827}
+  @page{size:A4;margin:10mm}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>${generateInvoiceHTMLForPDF(order, items)}</body></html>`;
 }
 
 export default Invoice;
