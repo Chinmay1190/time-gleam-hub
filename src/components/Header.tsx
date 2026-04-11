@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Watch, Heart, User, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Menu, X, Watch, Heart, User, Sun, Moon, BarChart3 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -146,6 +146,9 @@ const Header = () => {
               </Link>
               <Link to="/orders" onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-3">
                 <ShoppingCart className="w-4 h-4" /> My Orders
+              </Link>
+              <Link to="/reports" onClick={() => setMobileOpen(false)} className="px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-3">
+                <BarChart3 className="w-4 h-4" /> Reports
               </Link>
               <Link
                 to={user ? "/profile" : "/auth"}
