@@ -33,6 +33,7 @@ import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 import OrderSuccess from "./pages/OrderSuccess";
 import Invoice from "./pages/Invoice";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,7 @@ const App = () => (
                     <Route path="/order/:id" element={<OrderDetail />} />
                     <Route path="/order-success" element={<OrderSuccess />} />
                     <Route path="/invoice/:id" element={<Invoice />} />
+                    <Route path="/reports" element={<Reports />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
