@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FileText, Download, Calendar as CalendarIcon, TrendingUp, ShoppingBag,
-  Activity, BarChart3, ArrowRight, LogIn, Clock
+  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,10 @@ interface OrderData {
 const formatINR = (amount: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
 
+// PDF-safe format: uses "Rs." instead of ₹ symbol which jsPDF can't render
+const formatINRpdf = (amount: number) =>
+  "Rs. " + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount);
+
 const Reports = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -48,7 +52,6 @@ const Reports = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Get user metadata for login info
     setAccountCreatedAt(user.created_at || null);
     setLastSignIn(user.last_sign_in_at || null);
 
@@ -96,256 +99,256 @@ const Reports = () => {
     const pageH = doc.internal.pageSize.getHeight();
     let y = 0;
 
-    const addFooter = () => {
-      doc.setFillColor(25, 25, 40);
-      doc.rect(0, pageH - 18, w, 18, "F");
-      doc.setFillColor(212, 175, 55);
-      doc.rect(0, pageH - 18, w, 1.5, "F");
+    const addFooter = (pageNum: number) => {
+      doc.setFillColor(15, 15, 28);
+      doc.rect(0, pageH - 16, w, 16, "F");
+      doc.setFillColor(200, 160, 40);
+      doc.rect(0, pageH - 16, w, 0.8, "F");
       doc.setFontSize(7);
-      doc.setTextColor(120, 120, 140);
+      doc.setTextColor(100, 100, 120);
       doc.setFont("helvetica", "normal");
-      doc.text("ChronoHub - Premium Watch Collection", 15, pageH - 8);
-      doc.text("Confidential Report", w / 2, pageH - 8, { align: "center" });
-      doc.text(`Page ${doc.getNumberOfPages()}`, w - 15, pageH - 8, { align: "right" });
+      doc.text("ChronoHub - Premium Watch Collection", 15, pageH - 6);
+      doc.text("Confidential Report", w / 2, pageH - 6, { align: "center" });
+      doc.text("Page " + String(pageNum), w - 15, pageH - 6, { align: "right" });
     };
 
+    let currentPage = 1;
     const checkPage = (needed: number) => {
-      if (y + needed > pageH - 25) {
-        addFooter();
+      if (y + needed > pageH - 22) {
+        addFooter(currentPage);
         doc.addPage();
+        currentPage++;
         y = 15;
       }
     };
 
-    // ===== PAGE 1: HEADER =====
-    // Dark header block
-    doc.setFillColor(18, 18, 32);
-    doc.rect(0, 0, w, 58, "F");
-    // Gold accent line
-    doc.setFillColor(212, 175, 55);
-    doc.rect(0, 56, w, 2.5, "F");
-    // Decorative corner accent
-    doc.setFillColor(212, 175, 55, 0.15);
-    doc.rect(w - 50, 0, 50, 58, "F");
+    // ===== HEADER =====
+    doc.setFillColor(12, 12, 24);
+    doc.rect(0, 0, w, 55, "F");
+    // Gold gradient bar
+    doc.setFillColor(200, 160, 40);
+    doc.rect(0, 53, w, 2, "F");
+    // Subtle accent panel on right
+    doc.setFillColor(200, 160, 40);
+    doc.rect(w - 4, 0, 4, 55, "F");
 
     // Brand
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(212, 175, 55);
-    doc.setFontSize(26);
-    doc.text("CHRONOHUB", 15, 20);
-    doc.setFontSize(8);
-    doc.setTextColor(140, 140, 160);
+    doc.setTextColor(200, 160, 40);
+    doc.setFontSize(24);
+    doc.text("CHRONOHUB", 15, 18);
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 140);
     doc.setFont("helvetica", "normal");
-    doc.text("PREMIUM WATCH COLLECTION", 15, 27);
+    doc.text("PREMIUM WATCH COLLECTION", 15, 24);
 
     // Report title
-    doc.setFontSize(14);
-    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setTextColor(240, 240, 250);
     doc.setFont("helvetica", "bold");
-    doc.text(title.toUpperCase(), 15, 40);
-    doc.setFontSize(9);
-    doc.setTextColor(160, 160, 180);
+    doc.text(title.toUpperCase(), 15, 36);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 170);
     doc.setFont("helvetica", "normal");
-    doc.text(`Period: ${periodLabel}`, 15, 48);
+    doc.text("Period: " + periodLabel, 15, 43);
 
     // Right side info
-    doc.setFontSize(8);
-    doc.setTextColor(180, 180, 200);
-    doc.text(`Generated: ${format(now, "dd MMM yyyy, hh:mm a")}`, w - 15, 40, { align: "right" });
+    doc.setFontSize(7.5);
+    doc.setTextColor(150, 150, 170);
+    doc.text("Generated: " + format(now, "dd MMM yyyy, hh:mm a"), w - 19, 36, { align: "right" });
     if (user?.email) {
-      doc.text(`User: ${user.email}`, w - 15, 47, { align: "right" });
+      doc.text("User: " + user.email, w - 19, 43, { align: "right" });
     }
-    y = 68;
+    y = 63;
 
     // ===== ACCOUNT INFO =====
-    doc.setFillColor(28, 28, 45);
-    doc.roundedRect(15, y, w - 30, 20, 3, 3, "F");
-    doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(15, y, w - 30, 20, 3, 3, "S");
-    doc.setFontSize(7);
-    doc.setTextColor(140, 140, 160);
+    doc.setFillColor(20, 20, 36);
+    doc.roundedRect(15, y, w - 30, 18, 2, 2, "F");
+    doc.setDrawColor(60, 60, 80);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(15, y, w - 30, 18, 2, 2, "S");
+    doc.setFontSize(6.5);
+    doc.setTextColor(120, 120, 140);
     doc.setFont("helvetica", "normal");
-    doc.text("Account Created", 22, y + 8);
-    doc.text("Last Login", 85, y + 8);
-    doc.text("Total Orders (All Time)", 148, y + 8);
+    doc.text("ACCOUNT CREATED", 22, y + 7);
+    doc.text("LAST LOGIN", 85, y + 7);
+    doc.text("LIFETIME ORDERS", 148, y + 7);
     doc.setFontSize(9);
-    doc.setTextColor(220, 220, 235);
+    doc.setTextColor(210, 210, 225);
     doc.setFont("helvetica", "bold");
-    doc.text(accountCreatedAt ? format(new Date(accountCreatedAt), "dd MMM yyyy") : "N/A", 22, y + 15);
-    doc.text(lastSignIn ? format(new Date(lastSignIn), "dd MMM yyyy, hh:mm a") : "N/A", 85, y + 15);
-    doc.text(String(orders.length), 148, y + 15);
-    y += 28;
+    doc.text(accountCreatedAt ? format(new Date(accountCreatedAt), "dd MMM yyyy") : "N/A", 22, y + 14);
+    doc.text(lastSignIn ? format(new Date(lastSignIn), "dd MMM yyyy, hh:mm a") : "N/A", 85, y + 14);
+    doc.text(String(orders.length), 148, y + 14);
+    y += 26;
 
     // ===== SUMMARY CARDS =====
-    const cardW = (w - 45) / 3;
+    const cardW = (w - 42) / 3;
     const summaryData = [
-      { label: "TOTAL REVENUE", value: formatINR(stats.totalRevenue), accent: [212, 175, 55] as [number, number, number] },
-      { label: "TOTAL ORDERS", value: String(stats.count), accent: [99, 149, 255] as [number, number, number] },
-      { label: "GST COLLECTED", value: formatINR(stats.totalGST), accent: [168, 85, 247] as [number, number, number] },
+      { label: "TOTAL REVENUE", value: formatINRpdf(stats.totalRevenue), accent: [200, 160, 40] as [number, number, number] },
+      { label: "TOTAL ORDERS", value: String(stats.count), accent: [80, 130, 240] as [number, number, number] },
+      { label: "GST COLLECTED", value: formatINRpdf(stats.totalGST), accent: [150, 70, 220] as [number, number, number] },
     ];
     summaryData.forEach((c, i) => {
-      const cx = 15 + i * (cardW + 7.5);
-      // Card bg
-      doc.setFillColor(28, 28, 45);
-      doc.roundedRect(cx, y, cardW, 32, 3, 3, "F");
-      // Accent top bar
+      const cx = 15 + i * (cardW + 6);
+      doc.setFillColor(20, 20, 36);
+      doc.roundedRect(cx, y, cardW, 30, 2, 2, "F");
+      // Accent left bar
       doc.setFillColor(c.accent[0], c.accent[1], c.accent[2]);
-      doc.roundedRect(cx, y, cardW, 3, 3, 3, "F");
-      doc.setFillColor(28, 28, 45);
-      doc.rect(cx, y + 2, cardW, 4, "F");
+      doc.roundedRect(cx, y, 3, 30, 2, 2, "F");
+      doc.setFillColor(20, 20, 36);
+      doc.rect(cx + 2, y, 3, 30, "F");
 
-      doc.setFontSize(7);
-      doc.setTextColor(130, 130, 155);
+      doc.setFontSize(6.5);
+      doc.setTextColor(110, 110, 135);
       doc.setFont("helvetica", "normal");
-      doc.text(c.label, cx + 6, y + 12);
-      doc.setFontSize(16);
+      doc.text(c.label, cx + 8, y + 10);
+      doc.setFontSize(14);
       doc.setTextColor(c.accent[0], c.accent[1], c.accent[2]);
       doc.setFont("helvetica", "bold");
-      doc.text(c.value, cx + 6, y + 25);
+      doc.text(c.value, cx + 8, y + 22);
     });
-    y += 42;
+    y += 38;
 
-    // ===== STATUS BREAKDOWN =====
+    // ===== STATUS ROW =====
     const statusCards = [
       { label: "Delivered", value: String(stats.delivered), color: [34, 197, 94] as [number, number, number] },
       { label: "Pending", value: String(stats.pending), color: [234, 179, 8] as [number, number, number] },
       { label: "Cancelled", value: String(stats.cancelled), color: [239, 68, 68] as [number, number, number] },
-      { label: "Shipping Charges", value: formatINR(stats.totalShipping), color: [99, 149, 255] as [number, number, number] },
+      { label: "Shipping", value: formatINRpdf(stats.totalShipping), color: [80, 130, 240] as [number, number, number] },
     ];
     const sCardW = (w - 42) / 4;
     statusCards.forEach((c, i) => {
       const cx = 15 + i * (sCardW + 4);
-      doc.setFillColor(28, 28, 45);
-      doc.roundedRect(cx, y, sCardW, 24, 3, 3, "F");
-      // Colored dot
+      doc.setFillColor(20, 20, 36);
+      doc.roundedRect(cx, y, sCardW, 22, 2, 2, "F");
       doc.setFillColor(c.color[0], c.color[1], c.color[2]);
-      doc.circle(cx + 6, y + 9, 2, "F");
-      doc.setFontSize(7);
-      doc.setTextColor(140, 140, 160);
+      doc.circle(cx + 6, y + 8, 1.8, "F");
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 140);
       doc.setFont("helvetica", "normal");
-      doc.text(c.label, cx + 11, y + 10);
-      doc.setFontSize(13);
+      doc.text(c.label, cx + 10, y + 9);
+      doc.setFontSize(12);
       doc.setTextColor(c.color[0], c.color[1], c.color[2]);
       doc.setFont("helvetica", "bold");
-      doc.text(c.value, cx + 6, y + 20);
+      doc.text(c.value, cx + 6, y + 18);
     });
-    y += 34;
+    y += 30;
 
     // ===== ORDERS TABLE =====
     if (list.length > 0) {
-      checkPage(25);
-      // Section heading with line
-      doc.setFillColor(212, 175, 55);
-      doc.rect(15, y, 4, 1.5, "F");
-      doc.setFontSize(12);
-      doc.setTextColor(212, 175, 55);
+      checkPage(22);
+      // Section heading
+      doc.setFillColor(200, 160, 40);
+      doc.rect(15, y, 3, 1.2, "F");
+      doc.setFontSize(11);
+      doc.setTextColor(200, 160, 40);
       doc.setFont("helvetica", "bold");
-      doc.text("ORDER DETAILS", 22, y + 1);
+      doc.text("ORDER DETAILS", 21, y + 1);
       y += 8;
 
       // Table header
-      doc.setFillColor(25, 25, 42);
-      doc.roundedRect(15, y, w - 30, 11, 2, 2, "F");
-      doc.setFontSize(7);
-      doc.setTextColor(160, 160, 180);
+      doc.setFillColor(18, 18, 34);
+      doc.roundedRect(15, y, w - 30, 10, 1.5, 1.5, "F");
+      doc.setFontSize(6.5);
+      doc.setTextColor(140, 140, 160);
       doc.setFont("helvetica", "bold");
-      const cols = [18, 32, 70, 102, 135, 162];
-      const headers = ["No.", "Order Number", "Date", "Amount", "Status", "Payment"];
+      const cols = [18, 30, 68, 100, 134, 162];
+      const headers = ["S.No", "Order Number", "Date", "Amount", "Status", "Payment"];
       headers.forEach((h, i) => doc.text(h, cols[i], y + 7));
-      y += 14;
+      y += 13;
 
       list.forEach((order, idx) => {
-        checkPage(11);
-        // Alternate row bg
+        checkPage(10);
         if (idx % 2 === 0) {
-          doc.setFillColor(22, 22, 38);
-          doc.rect(15, y - 2, w - 30, 10, "F");
+          doc.setFillColor(16, 16, 30);
+          doc.rect(15, y - 1.5, w - 30, 9, "F");
         }
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setFont("helvetica", "normal");
 
-        // Serial number - properly formatted
-        doc.setTextColor(120, 120, 145);
-        const serialNum = String(idx + 1).padStart(2, "0");
-        doc.text(serialNum, cols[0], y + 5);
+        // Serial number
+        doc.setTextColor(100, 100, 125);
+        doc.text(String(idx + 1).padStart(2, "0"), cols[0], y + 4.5);
 
         // Order number
-        doc.setTextColor(210, 210, 225);
+        doc.setTextColor(200, 200, 215);
         doc.setFont("helvetica", "bold");
-        doc.text(order.order_number, cols[1], y + 5);
+        doc.text(order.order_number, cols[1], y + 4.5);
 
         // Date
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(160, 160, 180);
-        doc.text(format(new Date(order.created_at), "dd MMM yyyy"), cols[2], y + 5);
+        doc.setTextColor(140, 140, 160);
+        doc.text(format(new Date(order.created_at), "dd MMM yyyy"), cols[2], y + 4.5);
 
-        // Amount - gold bold
+        // Amount - use PDF-safe format
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(212, 175, 55);
-        doc.text(formatINR(order.total_amount), cols[3], y + 5);
+        doc.setTextColor(200, 160, 40);
+        doc.text(formatINRpdf(order.total_amount), cols[3], y + 4.5);
 
-        // Status with colored pill bg
+        // Status pill
         const statusColorMap: Record<string, { bg: [number, number, number]; text: [number, number, number] }> = {
-          delivered: { bg: [34, 60, 40], text: [34, 197, 94] },
-          pending: { bg: [60, 55, 20], text: [234, 179, 8] },
-          confirmed: { bg: [25, 40, 65], text: [59, 130, 246] },
-          processing: { bg: [60, 40, 15], text: [249, 115, 22] },
-          shipped: { bg: [40, 25, 60], text: [168, 85, 247] },
-          cancelled: { bg: [60, 20, 20], text: [239, 68, 68] },
-          out_for_delivery: { bg: [15, 50, 55], text: [6, 182, 212] },
+          delivered: { bg: [20, 50, 30], text: [34, 197, 94] },
+          pending: { bg: [50, 45, 15], text: [234, 179, 8] },
+          confirmed: { bg: [20, 35, 55], text: [59, 130, 246] },
+          processing: { bg: [50, 35, 10], text: [249, 115, 22] },
+          shipped: { bg: [35, 20, 50], text: [168, 85, 247] },
+          cancelled: { bg: [50, 15, 15], text: [239, 68, 68] },
+          out_for_delivery: { bg: [10, 40, 45], text: [6, 182, 212] },
         };
-        const sc = statusColorMap[order.status] || { bg: [40, 40, 55] as [number, number, number], text: [180, 180, 190] as [number, number, number] };
+        const sc = statusColorMap[order.status] || { bg: [35, 35, 50] as [number, number, number], text: [160, 160, 175] as [number, number, number] };
         const statusText = order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " ");
-        const stWidth = doc.getTextWidth(statusText) + 6;
+        const stWidth = doc.getTextWidth(statusText) + 5;
         doc.setFillColor(sc.bg[0], sc.bg[1], sc.bg[2]);
-        doc.roundedRect(cols[4] - 1, y + 1, stWidth, 6, 1.5, 1.5, "F");
+        doc.roundedRect(cols[4] - 1, y + 0.5, stWidth, 5.5, 1.2, 1.2, "F");
         doc.setTextColor(sc.text[0], sc.text[1], sc.text[2]);
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setFont("helvetica", "bold");
-        doc.text(statusText, cols[4] + 2, y + 5);
+        doc.text(statusText, cols[4] + 1.5, y + 4.5);
 
         // Payment
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(150, 150, 170);
-        doc.text(order.payment_method.toUpperCase(), cols[5], y + 5);
+        doc.setTextColor(130, 130, 150);
+        doc.text(order.payment_method.toUpperCase(), cols[5], y + 4.5);
 
-        y += 10;
+        y += 9;
       });
 
-      // Table bottom border
-      doc.setDrawColor(50, 50, 70);
-      doc.setLineWidth(0.3);
+      // Bottom line
+      doc.setDrawColor(40, 40, 60);
+      doc.setLineWidth(0.2);
       doc.line(15, y, w - 15, y);
-      y += 6;
+      y += 5;
 
-      // Totals row
+      // Grand total row
       checkPage(14);
-      doc.setFillColor(28, 28, 48);
+      doc.setFillColor(20, 20, 38);
       doc.roundedRect(15, y, w - 30, 12, 2, 2, "F");
+      doc.setDrawColor(200, 160, 40);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(15, y, w - 30, 12, 2, 2, "S");
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(160, 160, 180);
+      doc.setTextColor(140, 140, 160);
       doc.text("GRAND TOTAL", cols[1], y + 8);
-      doc.setTextColor(212, 175, 55);
+      doc.setTextColor(200, 160, 40);
       doc.setFontSize(11);
-      doc.text(formatINR(stats.totalRevenue), cols[3], y + 8);
-      doc.setFontSize(8);
-      doc.setTextColor(130, 130, 155);
-      doc.text(`${stats.count} order${stats.count !== 1 ? "s" : ""}`, cols[4] + 2, y + 8);
+      doc.text(formatINRpdf(stats.totalRevenue), cols[3], y + 8);
+      doc.setFontSize(7.5);
+      doc.setTextColor(110, 110, 135);
+      doc.text(stats.count + " order" + (stats.count !== 1 ? "s" : ""), cols[4] + 2, y + 8);
     } else {
       checkPage(20);
-      doc.setFillColor(28, 28, 45);
-      doc.roundedRect(15, y, w - 30, 25, 3, 3, "F");
+      doc.setFillColor(20, 20, 36);
+      doc.roundedRect(15, y, w - 30, 22, 2, 2, "F");
       doc.setFontSize(10);
-      doc.setTextColor(130, 130, 155);
+      doc.setTextColor(110, 110, 135);
       doc.setFont("helvetica", "normal");
-      doc.text("No orders found for this period.", w / 2, y + 14, { align: "center" });
+      doc.text("No orders found for this period.", w / 2, y + 13, { align: "center" });
     }
 
-    addFooter();
-    doc.save(`ChronoHub_${title.replace(/\s+/g, "_")}.pdf`);
+    addFooter(currentPage);
+    doc.save("ChronoHub_" + title.replace(/\s+/g, "_") + ".pdf");
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -372,7 +375,6 @@ const Reports = () => {
     const stats = computeStats(list);
     return (
       <div className="space-y-6">
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Revenue", value: formatINR(stats.totalRevenue), icon: TrendingUp, color: "text-primary" },
@@ -398,7 +400,6 @@ const Reports = () => {
           ))}
         </div>
 
-        {/* Orders Table */}
         {list.length > 0 ? (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-3">
