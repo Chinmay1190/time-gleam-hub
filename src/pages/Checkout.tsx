@@ -56,8 +56,18 @@ const Checkout = () => {
     upiId: "", cardNumber: "", cardExpiry: "", cardCvv: "", cardName: "",
   });
 
+  const sanitizeName = (val: string) => val.replace(/[^a-zA-Z\s.]/g, "").replace(/\s{2,}/g, " ");
+  const sanitizeAddress = (val: string) => val.replace(/[^a-zA-Z0-9\s,.\-/#()]/g, "");
+  const sanitizeCity = (val: string) => val.replace(/[^a-zA-Z\s]/g, "").replace(/\s{2,}/g, " ");
+
   const updateForm = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    let sanitized = value;
+    if (key === "name" || key === "cardName") sanitized = sanitizeName(value);
+    else if (key === "city") sanitized = sanitizeCity(value);
+    else if (key === "address") sanitized = sanitizeAddress(value);
+    else if (key === "pincode") sanitized = value.replace(/\D/g, "").slice(0, 6);
+
+    setForm((prev) => ({ ...prev, [key]: sanitized }));
     if (errors[key]) {
       setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
     }
@@ -133,19 +143,25 @@ const Checkout = () => {
     if (step === 0) {
       if (!form.name.trim()) newErrors.name = "Full name is required";
       else if (form.name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
+      else if (!/^[a-zA-Z][a-zA-Z.\s]{1,}$/.test(form.name.trim())) newErrors.name = "Enter a valid name (letters and spaces only)";
+      else if (form.name.trim().split(/\s+/).length < 2) newErrors.name = "Please enter your full name (first & last)";
 
       if (!form.email.trim()) newErrors.email = "Email is required";
       else if (!validateEmail(form.email)) newErrors.email = "Enter a valid email address";
 
       if (!form.phone.trim()) newErrors.phone = "Phone number is required";
-      else if (!validatePhone(form.phone)) newErrors.phone = "Enter a valid 10-digit Indian mobile number";
+      else if (!validatePhone(form.phone)) newErrors.phone = "Enter a valid 10-digit Indian mobile number (starting with 6-9)";
     }
 
     if (step === 1) {
       if (!form.address.trim()) newErrors.address = "Address is required";
-      else if (form.address.trim().length < 10) newErrors.address = "Please enter a complete address";
+      else if (form.address.trim().length < 10) newErrors.address = "Please enter a complete address (at least 10 characters)";
+      else if (!/[a-zA-Z]/.test(form.address)) newErrors.address = "Address must contain letters";
 
       if (!form.city.trim()) newErrors.city = "City is required";
+      else if (form.city.trim().length < 2) newErrors.city = "Enter a valid city name";
+      else if (!/^[a-zA-Z\s]+$/.test(form.city.trim())) newErrors.city = "City must contain only letters";
+
       if (!form.state.trim()) newErrors.state = "State is required";
 
       if (!form.pincode.trim()) newErrors.pincode = "PIN code is required";
