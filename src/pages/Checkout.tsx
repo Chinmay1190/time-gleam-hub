@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Check, CreditCard, Smartphone, Wallet, Banknote, ArrowLeft, Shield, Truck, Tag, Percent } from "lucide-react";
+import { Check, CreditCard, Smartphone, Wallet, Banknote, ArrowLeft, Shield, Truck, Tag, Percent, AlertCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const steps = ["Details", "Shipping", "Payment"];
 
@@ -25,24 +25,61 @@ const discountCodes: Record<string, { type: "percent" | "flat"; value: number; m
   SAVE1000: { type: "flat", value: 1000, minOrder: 14999 },
 };
 
+const indianStates = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Chandigarh", "Puducherry",
+];
+
+interface FieldError {
+  [key: string]: string;
+}
+
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [placing, setPlacing] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("upi");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [errors, setErrors] = useState<FieldError>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
     address: "", city: "", state: "", pincode: "",
+    upiId: "", cardNumber: "", cardExpiry: "", cardCvv: "", cardName: "",
   });
 
-  const updateForm = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateForm = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) {
+      setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    }
+  };
+
+  const markTouched = (key: string) => setTouched((prev) => ({ ...prev, [key]: true }));
+
+  const formatPhone = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 10);
+    return digits;
+  };
+
+  const formatCardNumber = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(.{4})/g, "$1 ").trim();
+  };
+
+  const formatExpiry = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 4);
+    if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2);
+    return digits;
+  };
 
   const formatPrice = (p: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(p);
@@ -56,17 +93,17 @@ const Checkout = () => {
     const code = couponCode.trim().toUpperCase();
     const coupon = discountCodes[code];
     if (!coupon) {
-      toast({ title: "Invalid coupon code", variant: "destructive" });
+      toast.error("Invalid coupon code");
       return;
     }
     if (subtotal < coupon.minOrder) {
-      toast({ title: `Minimum order ₹${coupon.minOrder.toLocaleString()} required`, variant: "destructive" });
+      toast.error(`Minimum order Rs.${coupon.minOrder.toLocaleString()} required`);
       return;
     }
     const discount = coupon.type === "percent" ? Math.round(subtotal * coupon.value / 100) : coupon.value;
     setDiscountAmount(discount);
     setAppliedCoupon(code);
-    toast({ title: `Coupon applied! You save ${formatPrice(discount)}` });
+    toast.success(`Coupon applied! You save ${formatPrice(discount)}`);
   };
 
   const removeCoupon = () => {
@@ -75,35 +112,86 @@ const Checkout = () => {
     setCouponCode("");
   };
 
-  const validateStep = () => {
-    if (step === 0) {
-      if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-        toast({ title: "Please fill all fields", variant: "destructive" });
-        return false;
-      }
-    }
-    if (step === 1) {
-      if (!form.address.trim() || !form.city.trim() || !form.state.trim() || !form.pincode.trim()) {
-        toast({ title: "Please fill complete address", variant: "destructive" });
-        return false;
-      }
-      if (form.pincode.trim().length !== 6) {
-        toast({ title: "Please enter a valid 6-digit PIN code", variant: "destructive" });
-        return false;
-      }
-    }
-    return true;
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePhone = (phone: string) => /^[6-9]\d{9}$/.test(phone.replace(/\D/g, ""));
+  const validatePincode = (pin: string) => /^\d{6}$/.test(pin.trim());
+  const validateUpi = (upi: string) => /^[\w.-]+@[\w]+$/.test(upi.trim());
+  const validateCardNumber = (card: string) => card.replace(/\s/g, "").length === 16;
+  const validateExpiry = (exp: string) => {
+    if (!/^\d{2}\/\d{2}$/.test(exp)) return false;
+    const [m, y] = exp.split("/").map(Number);
+    if (m < 1 || m > 12) return false;
+    const now = new Date();
+    const expDate = new Date(2000 + y, m);
+    return expDate > now;
   };
+  const validateCvv = (cvv: string) => /^\d{3,4}$/.test(cvv);
+
+  const validateStep = useCallback((): boolean => {
+    const newErrors: FieldError = {};
+
+    if (step === 0) {
+      if (!form.name.trim()) newErrors.name = "Full name is required";
+      else if (form.name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
+
+      if (!form.email.trim()) newErrors.email = "Email is required";
+      else if (!validateEmail(form.email)) newErrors.email = "Enter a valid email address";
+
+      if (!form.phone.trim()) newErrors.phone = "Phone number is required";
+      else if (!validatePhone(form.phone)) newErrors.phone = "Enter a valid 10-digit Indian mobile number";
+    }
+
+    if (step === 1) {
+      if (!form.address.trim()) newErrors.address = "Address is required";
+      else if (form.address.trim().length < 10) newErrors.address = "Please enter a complete address";
+
+      if (!form.city.trim()) newErrors.city = "City is required";
+      if (!form.state.trim()) newErrors.state = "State is required";
+
+      if (!form.pincode.trim()) newErrors.pincode = "PIN code is required";
+      else if (!validatePincode(form.pincode)) newErrors.pincode = "Enter a valid 6-digit PIN code";
+    }
+
+    if (step === 2) {
+      if (selectedPayment === "upi") {
+        if (!form.upiId.trim()) newErrors.upiId = "UPI ID is required";
+        else if (!validateUpi(form.upiId)) newErrors.upiId = "Enter a valid UPI ID (e.g. name@upi)";
+      }
+      if (selectedPayment === "card") {
+        if (!form.cardName.trim()) newErrors.cardName = "Cardholder name is required";
+        if (!form.cardNumber.trim()) newErrors.cardNumber = "Card number is required";
+        else if (!validateCardNumber(form.cardNumber)) newErrors.cardNumber = "Enter a valid 16-digit card number";
+        if (!form.cardExpiry.trim()) newErrors.cardExpiry = "Expiry date is required";
+        else if (!validateExpiry(form.cardExpiry)) newErrors.cardExpiry = "Enter a valid future date (MM/YY)";
+        if (!form.cardCvv.trim()) newErrors.cardCvv = "CVV is required";
+        else if (!validateCvv(form.cardCvv)) newErrors.cardCvv = "Enter a valid 3 or 4 digit CVV";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [step, form, selectedPayment]);
 
   const nextStep = () => {
-    if (!validateStep()) return;
+    // Mark all fields as touched for current step
+    if (step === 0) setTouched(p => ({ ...p, name: true, email: true, phone: true }));
+    if (step === 1) setTouched(p => ({ ...p, address: true, city: true, state: true, pincode: true }));
+    if (step === 2) {
+      if (selectedPayment === "upi") setTouched(p => ({ ...p, upiId: true }));
+      if (selectedPayment === "card") setTouched(p => ({ ...p, cardName: true, cardNumber: true, cardExpiry: true, cardCvv: true }));
+    }
+
+    if (!validateStep()) {
+      toast.error("Please fix the errors before continuing");
+      return;
+    }
     if (step < 2) setStep(step + 1);
     else placeOrder();
   };
 
   const placeOrder = async () => {
     if (!user) {
-      toast({ title: "Please sign in to place an order", variant: "destructive" });
+      toast.error("Please sign in to place an order");
       navigate("/auth");
       return;
     }
@@ -150,11 +238,32 @@ const Checkout = () => {
       clearCart();
       navigate(`/order-success?id=${order.id}`);
     } catch (err: any) {
-      toast({ title: "Failed to place order", description: err.message, variant: "destructive" });
+      toast.error("Failed to place order", { description: err.message });
     } finally {
       setPlacing(false);
     }
   };
+
+  const FieldError = ({ field }: { field: string }) => {
+    if (!errors[field] || !touched[field]) return null;
+    return (
+      <motion.p
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-1 mt-1.5 text-xs text-destructive font-medium"
+      >
+        <AlertCircle className="w-3 h-3" />
+        {errors[field]}
+      </motion.p>
+    );
+  };
+
+  const inputClass = (field: string) =>
+    `w-full px-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary ${
+      errors[field] && touched[field]
+        ? "border-destructive ring-1 ring-destructive/20"
+        : "border-input hover:border-primary/40"
+    }`;
 
   if (!user) {
     return (
@@ -203,18 +312,47 @@ const Checkout = () => {
               {step === 0 && (
                 <>
                   <h2 className="font-heading font-semibold text-lg">Your Details</h2>
-                  <div className="grid gap-4">
+                  <div className="grid gap-5">
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Full Name</label>
-                      <input placeholder="John Doe" value={form.name} onChange={(e) => updateForm("name", e.target.value)} className="input-field" />
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Full Name *</label>
+                      <input
+                        placeholder="John Doe"
+                        value={form.name}
+                        onChange={(e) => updateForm("name", e.target.value)}
+                        onBlur={() => markTouched("name")}
+                        className={inputClass("name")}
+                        maxLength={100}
+                      />
+                      <FieldError field="name" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Email</label>
-                      <input placeholder="you@example.com" type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} className="input-field" />
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Email *</label>
+                      <input
+                        placeholder="you@example.com"
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => updateForm("email", e.target.value)}
+                        onBlur={() => markTouched("email")}
+                        className={inputClass("email")}
+                        maxLength={255}
+                      />
+                      <FieldError field="email" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Phone</label>
-                      <input placeholder="+91 98765 43210" type="tel" value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} className="input-field" />
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Phone *</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">+91</span>
+                        <input
+                          placeholder="98765 43210"
+                          type="tel"
+                          value={form.phone}
+                          onChange={(e) => updateForm("phone", formatPhone(e.target.value))}
+                          onBlur={() => markTouched("phone")}
+                          className={`${inputClass("phone")} pl-12`}
+                          maxLength={10}
+                        />
+                      </div>
+                      <FieldError field="phone" />
                     </div>
                   </div>
                 </>
@@ -223,24 +361,61 @@ const Checkout = () => {
               {step === 1 && (
                 <>
                   <h2 className="font-heading font-semibold text-lg">Shipping Address</h2>
-                  <div className="grid gap-4">
+                  <div className="grid gap-5">
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Full Address</label>
-                      <input placeholder="Street address, apartment, floor..." value={form.address} onChange={(e) => updateForm("address", e.target.value)} className="input-field" />
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Full Address *</label>
+                      <textarea
+                        placeholder="House/Flat No., Street, Landmark..."
+                        value={form.address}
+                        onChange={(e) => updateForm("address", e.target.value)}
+                        onBlur={() => markTouched("address")}
+                        className={`${inputClass("address")} min-h-[80px] resize-none`}
+                        maxLength={500}
+                        rows={3}
+                      />
+                      <FieldError field="address" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">City</label>
-                        <input placeholder="Mumbai" value={form.city} onChange={(e) => updateForm("city", e.target.value)} className="input-field" />
+                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">City *</label>
+                        <input
+                          placeholder="Mumbai"
+                          value={form.city}
+                          onChange={(e) => updateForm("city", e.target.value)}
+                          onBlur={() => markTouched("city")}
+                          className={inputClass("city")}
+                          maxLength={100}
+                        />
+                        <FieldError field="city" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">PIN Code</label>
-                        <input placeholder="400001" value={form.pincode} onChange={(e) => updateForm("pincode", e.target.value)} className="input-field" maxLength={6} />
+                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">PIN Code *</label>
+                        <input
+                          placeholder="400001"
+                          value={form.pincode}
+                          onChange={(e) => updateForm("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          onBlur={() => markTouched("pincode")}
+                          className={inputClass("pincode")}
+                          maxLength={6}
+                          inputMode="numeric"
+                        />
+                        <FieldError field="pincode" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">State</label>
-                      <input placeholder="Maharashtra" value={form.state} onChange={(e) => updateForm("state", e.target.value)} className="input-field" />
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">State *</label>
+                      <select
+                        value={form.state}
+                        onChange={(e) => updateForm("state", e.target.value)}
+                        onBlur={() => markTouched("state")}
+                        className={inputClass("state")}
+                      >
+                        <option value="">Select State</option>
+                        {indianStates.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      <FieldError field="state" />
                     </div>
                   </div>
                 </>
@@ -262,7 +437,7 @@ const Checkout = () => {
                           name="payment"
                           value={m.id}
                           checked={selectedPayment === m.id}
-                          onChange={() => setSelectedPayment(m.id)}
+                          onChange={() => { setSelectedPayment(m.id); setErrors({}); }}
                           className="accent-primary"
                         />
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -278,30 +453,77 @@ const Checkout = () => {
 
                   {/* UPI ID field */}
                   {selectedPayment === "upi" && (
-                    <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">UPI ID</label>
-                      <input placeholder="yourname@upi" className="input-field" />
-                    </div>
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">UPI ID *</label>
+                      <input
+                        placeholder="yourname@upi"
+                        value={form.upiId}
+                        onChange={(e) => updateForm("upiId", e.target.value)}
+                        onBlur={() => markTouched("upiId")}
+                        className={inputClass("upiId")}
+                      />
+                      <FieldError field="upiId" />
+                    </motion.div>
                   )}
 
                   {/* Card fields */}
                   {selectedPayment === "card" && (
-                    <div className="grid gap-4">
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="grid gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Card Number</label>
-                        <input placeholder="1234 5678 9012 3456" className="input-field" maxLength={19} />
+                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Cardholder Name *</label>
+                        <input
+                          placeholder="Name on card"
+                          value={form.cardName}
+                          onChange={(e) => updateForm("cardName", e.target.value)}
+                          onBlur={() => markTouched("cardName")}
+                          className={inputClass("cardName")}
+                          maxLength={100}
+                        />
+                        <FieldError field="cardName" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Card Number *</label>
+                        <input
+                          placeholder="1234 5678 9012 3456"
+                          value={form.cardNumber}
+                          onChange={(e) => updateForm("cardNumber", formatCardNumber(e.target.value))}
+                          onBlur={() => markTouched("cardNumber")}
+                          className={inputClass("cardNumber")}
+                          maxLength={19}
+                          inputMode="numeric"
+                        />
+                        <FieldError field="cardNumber" />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Expiry</label>
-                          <input placeholder="MM/YY" className="input-field" maxLength={5} />
+                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Expiry *</label>
+                          <input
+                            placeholder="MM/YY"
+                            value={form.cardExpiry}
+                            onChange={(e) => updateForm("cardExpiry", formatExpiry(e.target.value))}
+                            onBlur={() => markTouched("cardExpiry")}
+                            className={inputClass("cardExpiry")}
+                            maxLength={5}
+                            inputMode="numeric"
+                          />
+                          <FieldError field="cardExpiry" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">CVV</label>
-                          <input placeholder="***" type="password" className="input-field" maxLength={4} />
+                          <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">CVV *</label>
+                          <input
+                            placeholder="•••"
+                            type="password"
+                            value={form.cardCvv}
+                            onChange={(e) => updateForm("cardCvv", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            onBlur={() => markTouched("cardCvv")}
+                            className={inputClass("cardCvv")}
+                            maxLength={4}
+                            inputMode="numeric"
+                          />
+                          <FieldError field="cardCvv" />
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </>
               )}
@@ -412,7 +634,7 @@ const Checkout = () => {
                   </span>
                 </div>
                 {shipping > 0 && (
-                  <p className="text-xs text-muted-foreground">Free shipping on orders ≥ ₹999</p>
+                  <p className="text-xs text-muted-foreground">Free shipping on orders above Rs.999</p>
                 )}
                 <div className="border-t border-border pt-3 flex justify-between text-lg font-heading font-bold">
                   <span>Total</span>
