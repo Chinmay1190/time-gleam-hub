@@ -6,99 +6,99 @@
 
 @layer base {
   :root, .dark {
-    --background: 225 25% 3%;
-    --foreground: 40 15% 93%;
+    --background: 240 20% 4%;
+    --foreground: 45 20% 95%;
 
-    --card: 225 20% 7%;
-    --card-foreground: 40 15% 93%;
+    --card: 240 18% 8%;
+    --card-foreground: 45 20% 95%;
 
-    --popover: 225 20% 7%;
-    --popover-foreground: 40 15% 93%;
+    --popover: 240 18% 8%;
+    --popover-foreground: 45 20% 95%;
 
-    --primary: 38 85% 58%;
-    --primary-foreground: 225 25% 3%;
+    --primary: 32 100% 55%;
+    --primary-foreground: 240 20% 4%;
 
-    --secondary: 225 18% 13%;
-    --secondary-foreground: 40 15% 88%;
+    --secondary: 260 30% 15%;
+    --secondary-foreground: 45 15% 90%;
 
-    --muted: 225 18% 11%;
-    --muted-foreground: 225 12% 50%;
+    --muted: 260 20% 12%;
+    --muted-foreground: 240 10% 55%;
 
-    --accent: 38 65% 48%;
-    --accent-foreground: 225 25% 3%;
+    --accent: 280 60% 55%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 80% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 18% 14%;
-    --input: 225 18% 14%;
-    --ring: 38 85% 58%;
+    --border: 260 20% 16%;
+    --input: 260 20% 16%;
+    --ring: 32 100% 55%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 225 20% 5%;
-    --sidebar-foreground: 40 15% 88%;
-    --sidebar-primary: 38 85% 58%;
-    --sidebar-primary-foreground: 225 25% 3%;
-    --sidebar-accent: 225 18% 11%;
-    --sidebar-accent-foreground: 40 15% 88%;
-    --sidebar-border: 225 18% 14%;
-    --sidebar-ring: 38 85% 58%;
+    --sidebar-background: 240 20% 5%;
+    --sidebar-foreground: 45 15% 90%;
+    --sidebar-primary: 32 100% 55%;
+    --sidebar-primary-foreground: 240 20% 4%;
+    --sidebar-accent: 260 20% 12%;
+    --sidebar-accent-foreground: 45 15% 90%;
+    --sidebar-border: 260 20% 16%;
+    --sidebar-ring: 32 100% 55%;
 
     /* Custom tokens */
-    --gold: 38 85% 58%;
-    --gold-light: 40 75% 72%;
-    --gold-dark: 35 90% 42%;
-    --glass: 225 18% 10%;
-    --glass-border: 225 15% 18%;
-    --surface: 225 20% 9%;
-    --surface-hover: 225 20% 13%;
-    --gradient-gold: linear-gradient(135deg, hsl(38 85% 58%), hsl(45 80% 68%));
-    --gradient-dark: linear-gradient(180deg, hsl(225 25% 3%), hsl(225 20% 7%));
-    --shadow-gold: 0 0 50px -12px hsl(38 85% 58% / 0.35);
-    --shadow-card: 0 12px 40px -10px hsl(0 0% 0% / 0.6);
-    --success: 152 60% 45%;
+    --gold: 32 100% 55%;
+    --gold-light: 38 90% 70%;
+    --gold-dark: 28 100% 40%;
+    --glass: 240 18% 10%;
+    --glass-border: 260 15% 20%;
+    --surface: 240 18% 9%;
+    --surface-hover: 260 20% 14%;
+    --gradient-gold: linear-gradient(135deg, hsl(32 100% 55%), hsl(45 85% 68%));
+    --gradient-dark: linear-gradient(180deg, hsl(240 20% 4%), hsl(260 18% 8%));
+    --shadow-gold: 0 0 60px -12px hsl(32 100% 55% / 0.4);
+    --shadow-card: 0 16px 48px -12px hsl(260 50% 10% / 0.7);
+    --success: 160 70% 42%;
     --success-foreground: 0 0% 100%;
   }
 
   .light {
-    --background: 40 20% 97%;
-    --foreground: 225 25% 10%;
+    --background: 40 30% 97%;
+    --foreground: 240 25% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 225 25% 10%;
+    --card-foreground: 240 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 225 25% 10%;
+    --popover-foreground: 240 25% 10%;
 
-    --primary: 38 85% 48%;
+    --primary: 32 100% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 15% 92%;
-    --secondary-foreground: 225 20% 25%;
+    --secondary: 260 20% 93%;
+    --secondary-foreground: 260 25% 25%;
 
-    --muted: 225 15% 93%;
-    --muted-foreground: 225 10% 45%;
+    --muted: 260 15% 94%;
+    --muted-foreground: 260 10% 45%;
 
-    --accent: 38 65% 42%;
+    --accent: 280 55% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 80% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 15% 88%;
-    --input: 225 15% 88%;
-    --ring: 38 85% 48%;
+    --border: 260 15% 88%;
+    --input: 260 15% 88%;
+    --ring: 32 100% 48%;
 
-    --gold: 38 85% 48%;
-    --gold-light: 40 75% 62%;
-    --gold-dark: 35 90% 35%;
+    --gold: 32 100% 48%;
+    --gold-light: 38 85% 62%;
+    --gold-dark: 28 100% 35%;
     --glass: 0 0% 100%;
-    --glass-border: 225 15% 85%;
-    --surface: 225 15% 95%;
-    --surface-hover: 225 15% 90%;
-    --shadow-gold: 0 0 50px -12px hsl(38 85% 48% / 0.25);
-    --shadow-card: 0 12px 40px -10px hsl(0 0% 0% / 0.1);
+    --glass-border: 260 15% 85%;
+    --surface: 260 15% 95%;
+    --surface-hover: 260 15% 90%;
+    --shadow-gold: 0 0 50px -12px hsl(32 100% 48% / 0.3);
+    --shadow-card: 0 12px 40px -10px hsl(260 30% 20% / 0.12);
   }
 }
 
@@ -137,19 +137,27 @@
   }
 
   .glass-card-hover {
-    @apply glass-card transition-all duration-500 hover:border-gold/30 hover:shadow-gold;
+    @apply glass-card transition-all duration-500 hover:border-gold/30 hover:shadow-gold hover:-translate-y-1;
   }
 
   .gold-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-gold to-gold-light;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-light)), hsl(var(--gold)));
+    background-size: 200% auto;
+    animation: text-shimmer 4s linear infinite;
+  }
+
+  @keyframes text-shimmer {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
   }
 
   .gold-glow {
-    box-shadow: 0 0 80px -20px hsl(var(--primary) / 0.45);
+    box-shadow: 0 0 80px -20px hsl(var(--primary) / 0.5), 0 0 120px -40px hsl(var(--accent) / 0.2);
   }
 
   .gold-glow-sm {
-    box-shadow: 0 0 30px -8px hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 30px -8px hsl(var(--primary) / 0.35);
   }
 
   .section-padding {
@@ -170,7 +178,7 @@
   .premium-border::before {
     content: '';
     @apply absolute inset-0 rounded-2xl pointer-events-none;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.15), transparent 50%, hsl(var(--primary) / 0.08));
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.2), transparent 40%, hsl(var(--accent) / 0.15), transparent 70%, hsl(var(--primary) / 0.1));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -179,11 +187,12 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-heading font-semibold rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-primary/20;
+    @apply inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-heading font-bold rounded-2xl hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 shadow-lg shadow-primary/25;
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--gold-light)));
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-8 py-4 border border-border text-foreground font-heading font-semibold rounded-2xl hover:bg-secondary hover:border-primary/20 transition-all duration-300;
+    @apply inline-flex items-center justify-center gap-2 px-8 py-4 border border-border text-foreground font-heading font-bold rounded-2xl hover:bg-secondary hover:border-primary/30 transition-all duration-300;
   }
 
   .input-field {
@@ -210,8 +219,13 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.2); }
-    50% { box-shadow: 0 0 40px -5px hsl(var(--primary) / 0.4); }
+    0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.2), 0 0 40px -10px hsl(var(--accent) / 0.1); }
+    50% { box-shadow: 0 0 50px -5px hsl(var(--primary) / 0.45), 0 0 80px -10px hsl(var(--accent) / 0.2); }
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 
   .animate-float {
@@ -219,13 +233,18 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.08) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.1) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
   }
 
   .animate-pulse-glow {
     animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
   }
 
   .line-clamp-2 {
