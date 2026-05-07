@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Award, Target, Lightbulb, Shield, Users, Globe, Truck, HeartHandshake, Sparkles, ArrowRight, Star, Zap, Clock, CheckCircle } from "lucide-react";
+import { Award, Target, Lightbulb, Shield, Users, Globe, Truck, HeartHandshake, Sparkles, ArrowRight, Star, Zap, Clock, CheckCircle, Quote } from "lucide-react";
 import { Link } from "react-router-dom";
+import CountUp from "@/components/CountUp";
 
 const About = () => {
   const fadeUp = {
@@ -54,10 +55,10 @@ const About = () => {
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
             {[
-              { value: "50K+", label: "Happy Customers", icon: Users },
-              { value: "200+", label: "Watch Models", icon: Globe },
-              { value: "500+", label: "Cities Served", icon: Truck },
-              { value: "4.9★", label: "Average Rating", icon: Award },
+              { end: 50, suffix: "K+", label: "Happy Customers", icon: Users },
+              { end: 200, suffix: "+", label: "Watch Models", icon: Globe },
+              { end: 500, suffix: "+", label: "Cities Served", icon: Truck },
+              { end: 4.9, suffix: "★", label: "Average Rating", icon: Award, decimals: 1 },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
@@ -70,7 +71,9 @@ const About = () => {
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
                   <s.icon className="w-7 h-7 text-primary" />
                 </div>
-                <div className="font-heading text-3xl sm:text-4xl font-bold text-primary">{s.value}</div>
+                <div className="font-heading text-3xl sm:text-4xl font-bold text-primary">
+                  <CountUp end={s.end} suffix={s.suffix} decimals={s.decimals || 0} />
+                </div>
                 <div className="text-sm text-muted-foreground font-medium">{s.label}</div>
               </motion.div>
             ))}
@@ -221,6 +224,49 @@ const About = () => {
                 </div>
                 <h3 className="font-heading text-lg font-bold mb-3">{item.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Testimonials */}
+        <motion.div {...fadeUp} className="mb-24">
+          <div className="text-center mb-14">
+            <span className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3 block">Voices</span>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold">
+              From Our <span className="gold-gradient-text">Community</span>
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { quote: "ChronoHub transformed how I shop for watches. The curation is impeccable and delivery is lightning fast.", name: "Aditi Sharma", role: "Designer, Bangalore" },
+              { quote: "Best smartwatch buying experience I've had in India. Genuine products and brilliant customer service.", name: "Vikram Patel", role: "Entrepreneur, Mumbai" },
+              { quote: "From browsing to unboxing — every detail feels premium. ChronoHub truly raises the bar.", name: "Neha Kapoor", role: "Photographer, Delhi" },
+            ].map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card p-8 relative group hover:border-primary/30 transition-all"
+              >
+                <Quote className="w-10 h-10 text-primary/20 absolute top-6 right-6 group-hover:text-primary/40 transition-colors" />
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Star key={j} className="w-4 h-4 text-primary fill-primary" />
+                  ))}
+                </div>
+                <p className="text-muted-foreground leading-relaxed mb-6 italic">"{t.quote}"</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-heading font-bold text-sm">
+                    {t.name.split(" ").map(n => n[0]).join("")}
+                  </div>
+                  <div>
+                    <p className="font-heading font-bold text-sm">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>

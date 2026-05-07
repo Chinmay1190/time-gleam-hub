@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  FileText, Download, Calendar as CalendarIcon, TrendingUp, ShoppingBag,
-  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon
+  FileText, Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, ShoppingBag,
+  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles
 } from "lucide-react";
+import CountUp from "@/components/CountUp";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -528,6 +529,110 @@ const Reports = () => {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Hero KPI Dashboard */}
+        {(() => {
+          const monthStats = computeStats(monthlyOrders);
+          const prevStats = computeStats(prevMonthOrders);
+          const revGrowth = prevStats.totalRevenue > 0
+            ? ((monthStats.totalRevenue - prevStats.totalRevenue) / prevStats.totalRevenue) * 100
+            : monthStats.totalRevenue > 0 ? 100 : 0;
+          const orderGrowth = prevStats.count > 0
+            ? ((monthStats.count - prevStats.count) / prevStats.count) * 100
+            : monthStats.count > 0 ? 100 : 0;
+          const avgOrder = monthStats.count > 0 ? monthStats.totalRevenue / monthStats.count : 0;
+
+          const trendData = Array.from({ length: 6 }).map((_, i) => {
+            const d = subMonths(now, 5 - i);
+            const monthOrders = filterOrders(startOfMonth(d), endOfMonth(d));
+            return { label: format(d, "MMM"), value: monthOrders.reduce((s, o) => s + Number(o.total_amount || 0), 0) };
+          });
+          const maxTrend = Math.max(...trendData.map((t) => t.value), 1);
+          const lifetimeSpend = orders.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+
+          const kpis = [
+            { label: "This Month Revenue", value: Math.round(monthStats.totalRevenue), prefix: "₹", icon: IndianRupee, growth: revGrowth, iconColor: "text-amber-400" },
+            { label: "This Month Orders", value: monthStats.count, icon: ShoppingBag, growth: orderGrowth, iconColor: "text-blue-400" },
+            { label: "Avg Order Value", value: Math.round(avgOrder), prefix: "₹", icon: TrendingUp, growth: null as number | null, iconColor: "text-purple-400" },
+            { label: "Lifetime Spend", value: Math.round(lifetimeSpend), prefix: "₹", icon: Sparkles, growth: null as number | null, iconColor: "text-pink-400" },
+          ];
+
+          return (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {kpis.map((k, i) => (
+                  <motion.div
+                    key={k.label}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.06 }}
+                    className="glass-card p-5 relative overflow-hidden group hover:border-primary/30 transition-all"
+                  >
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
+                    <div className="relative">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <k.icon className={`w-5 h-5 ${k.iconColor}`} />
+                        </div>
+                        {k.growth !== null && (
+                          <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            k.growth >= 0 ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
+                          }`}>
+                            {k.growth >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                            {Math.abs(k.growth).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{k.label}</p>
+                      <p className="font-heading font-bold text-2xl mt-1">
+                        {k.prefix || ""}<CountUp end={k.value} />
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="font-heading font-bold text-lg flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-primary" /> Revenue Trend
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Last 6 months spending pattern</p>
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between gap-2 sm:gap-4 h-40">
+                    {trendData.map((t, i) => {
+                      const heightPct = (t.value / maxTrend) * 100;
+                      const isCurrent = i === trendData.length - 1;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                          <div className="text-[10px] font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                            ₹{formatINR(t.value).replace("₹", "")}
+                          </div>
+                          <div className="w-full flex-1 flex items-end">
+                            <motion.div
+                              initial={{ height: 0 }}
+                              animate={{ height: `${Math.max(heightPct, 2)}%` }}
+                              transition={{ delay: 0.3 + i * 0.08, duration: 0.6, ease: "easeOut" }}
+                              className={`w-full rounded-t-lg ${
+                                isCurrent
+                                  ? "bg-gradient-to-t from-primary to-primary/40 shadow-lg shadow-primary/30"
+                                  : "bg-gradient-to-t from-muted-foreground/30 to-muted-foreground/10 group-hover:from-primary/60 group-hover:to-primary/20"
+                              } transition-all`}
+                            />
+                          </div>
+                          <span className={`text-xs font-medium ${isCurrent ? "text-primary" : "text-muted-foreground"}`}>{t.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })()}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
