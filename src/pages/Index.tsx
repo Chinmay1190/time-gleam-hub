@@ -51,6 +51,26 @@ const heroSlides = [
 const Index = () => {
   const trending = products.slice(0, 8);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const heroRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  const smooth = (mv: MotionValue<number>) => useSpring(mv, { stiffness: 80, damping: 20, mass: 0.6 });
+
+  // Parallax transforms — different layers move at different speeds
+  const bgY = smooth(useTransform(scrollYProgress, [0, 1], [0, 200]));
+  const blob1Y = smooth(useTransform(scrollYProgress, [0, 1], [0, 350]));
+  const blob2Y = smooth(useTransform(scrollYProgress, [0, 1], [0, -250]));
+  const textY = smooth(useTransform(scrollYProgress, [0, 1], [0, 150]));
+  const textOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const imageY = smooth(useTransform(scrollYProgress, [0, 1], [0, -120]));
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const imageRotate = useTransform(scrollYProgress, [0, 1], [0, -8]);
+  const badge1Y = smooth(useTransform(scrollYProgress, [0, 1], [0, -180]));
+  const badge2Y = smooth(useTransform(scrollYProgress, [0, 1], [0, -90]));
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,13 +86,28 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero with Slider */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
-        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      {/* Hero with Slider + Parallax */}
+      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
+        <motion.div style={{ y: blob1Y }} className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none will-change-transform" />
+        <motion.div style={{ y: blob2Y }} className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[120px] pointer-events-none will-change-transform" />
+        <motion.div
+          style={{ y: bgY }}
+          className="absolute inset-0 pointer-events-none opacity-[0.04] will-change-transform"
+          aria-hidden
+        >
+          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--primary)) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        </motion.div>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-        <div className="container-main px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center pt-24 pb-16">
+        <div className="container-main px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center pt-24 pb-16 relative z-10">
+          <motion.div style={{ y: textY, opacity: textOpacity }} className="will-change-transform">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
           <motion.div
             key={currentSlide}
             initial={{ opacity: 0, x: -40 }}
