@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  FileText, Download, Calendar as CalendarIcon, TrendingUp, ShoppingBag,
-  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon
+  FileText, Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, ShoppingBag,
+  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles
 } from "lucide-react";
+import CountUp from "@/components/CountUp";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
