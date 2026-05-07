@@ -229,6 +229,49 @@ const About = () => {
           </div>
         </motion.div>
 
+        {/* Testimonials */}
+        <motion.div {...fadeUp} className="mb-24">
+          <div className="text-center mb-14">
+            <span className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3 block">Voices</span>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold">
+              From Our <span className="gold-gradient-text">Community</span>
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { quote: "ChronoHub transformed how I shop for watches. The curation is impeccable and delivery is lightning fast.", name: "Aditi Sharma", role: "Designer, Bangalore" },
+              { quote: "Best smartwatch buying experience I've had in India. Genuine products and brilliant customer service.", name: "Vikram Patel", role: "Entrepreneur, Mumbai" },
+              { quote: "From browsing to unboxing — every detail feels premium. ChronoHub truly raises the bar.", name: "Neha Kapoor", role: "Photographer, Delhi" },
+            ].map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card p-8 relative group hover:border-primary/30 transition-all"
+              >
+                <Quote className="w-10 h-10 text-primary/20 absolute top-6 right-6 group-hover:text-primary/40 transition-colors" />
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Star key={j} className="w-4 h-4 text-primary fill-primary" />
+                  ))}
+                </div>
+                <p className="text-muted-foreground leading-relaxed mb-6 italic">"{t.quote}"</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-heading font-bold text-sm">
+                    {t.name.split(" ").map(n => n[0]).join("")}
+                  </div>
+                  <div>
+                    <p className="font-heading font-bold text-sm">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* CTA */}
         <motion.div {...fadeUp} className="glass-card p-12 sm:p-16 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
