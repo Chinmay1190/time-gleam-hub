@@ -6,6 +6,21 @@ import { Link } from "react-router-dom";
 const Contact = () => {
   const [sent, setSent] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const faqs = [
+    { q: "How long does delivery take?", a: "Standard delivery takes 2-5 business days across 500+ cities in India. Express delivery is available in select metros within 24 hours." },
+    { q: "Are your products authentic?", a: "Absolutely. Every watch we sell is sourced directly from authorized brand partners and ships with full manufacturer warranty." },
+    { q: "What is your return policy?", a: "We offer hassle-free 7-day returns on all unworn products. Just initiate a return from your orders page and we'll handle the rest." },
+    { q: "Do you ship internationally?", a: "Currently we ship across India only. International shipping is on our roadmap and will be announced soon." },
+  ];
+
+  const socials = [
+    { icon: Instagram, label: "Instagram", color: "hover:text-pink-400", href: "#" },
+    { icon: Twitter, label: "Twitter", color: "hover:text-sky-400", href: "#" },
+    { icon: Facebook, label: "Facebook", color: "hover:text-blue-400", href: "#" },
+    { icon: Youtube, label: "YouTube", color: "hover:text-red-400", href: "#" },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
