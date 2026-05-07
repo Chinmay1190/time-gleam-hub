@@ -55,10 +55,10 @@ const About = () => {
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
             {[
-              { value: "50K+", label: "Happy Customers", icon: Users },
-              { value: "200+", label: "Watch Models", icon: Globe },
-              { value: "500+", label: "Cities Served", icon: Truck },
-              { value: "4.9★", label: "Average Rating", icon: Award },
+              { end: 50, suffix: "K+", label: "Happy Customers", icon: Users },
+              { end: 200, suffix: "+", label: "Watch Models", icon: Globe },
+              { end: 500, suffix: "+", label: "Cities Served", icon: Truck },
+              { end: 4.9, suffix: "★", label: "Average Rating", icon: Award, decimals: 1 },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
