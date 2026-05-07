@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, MotionValue } from "framer-motion";
 import { ArrowRight, Zap, Shield, Battery, Bluetooth, Star, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
 import heroWatch from "@/assets/hero-watch.png";
 import watch1 from "@/assets/watch-1.png";
 import watch2 from "@/assets/watch-2.png";
