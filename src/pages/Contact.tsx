@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, Send, Clock, MessageCircle, Headphones, ArrowRight, CheckCircle, Globe, Shield } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Clock, MessageCircle, Headphones, ArrowRight, CheckCircle, Globe, Shield, Instagram, Twitter, Facebook, Youtube, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
