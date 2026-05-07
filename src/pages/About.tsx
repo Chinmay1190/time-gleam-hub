@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Award, Target, Lightbulb, Shield, Users, Globe, Truck, HeartHandshake, Sparkles, ArrowRight, Star, Zap, Clock, CheckCircle } from "lucide-react";
+import { Award, Target, Lightbulb, Shield, Users, Globe, Truck, HeartHandshake, Sparkles, ArrowRight, Star, Zap, Clock, CheckCircle, Quote } from "lucide-react";
 import { Link } from "react-router-dom";
+import CountUp from "@/components/CountUp";
 
 const About = () => {
   const fadeUp = {
