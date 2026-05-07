@@ -233,6 +233,76 @@ const Contact = () => {
           </motion.div>
         </div>
 
+        {/* FAQ Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <div className="text-center mb-10">
+            <span className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3 block">FAQ</span>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold">
+              Quick <span className="gold-gradient-text">Answers</span>
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-md mx-auto">Common questions answered. Can't find what you're looking for? Send us a message.</p>
+          </div>
+          <div className="max-w-3xl mx-auto space-y-3">
+            {faqs.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="glass-card overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-muted/30 transition-colors"
+                >
+                  <span className="font-heading font-semibold text-sm sm:text-base">{f.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-primary transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
+                </button>
+                <motion.div
+                  initial={false}
+                  animate={{ height: openFaq === i ? "auto" : 0, opacity: openFaq === i ? 1 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Social Connect */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="glass-card p-8 sm:p-10 mb-16 text-center relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+          <div className="relative">
+            <h3 className="font-heading text-2xl font-bold mb-2">Stay Connected</h3>
+            <p className="text-muted-foreground text-sm mb-6">Follow us for product launches, exclusive deals, and watch-tech inspiration.</p>
+            <div className="flex items-center justify-center gap-3">
+              {socials.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  className={`w-12 h-12 rounded-xl bg-muted/50 border border-border flex items-center justify-center text-muted-foreground ${s.color} hover:scale-110 hover:border-primary/30 transition-all`}
+                  aria-label={s.label}
+                >
+                  <s.icon className="w-5 h-5" />
+                </a>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
         {/* Trust Badges */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
