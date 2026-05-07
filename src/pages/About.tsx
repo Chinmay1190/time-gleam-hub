@@ -71,7 +71,9 @@ const About = () => {
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
                   <s.icon className="w-7 h-7 text-primary" />
                 </div>
-                <div className="font-heading text-3xl sm:text-4xl font-bold text-primary">{s.value}</div>
+                <div className="font-heading text-3xl sm:text-4xl font-bold text-primary">
+                  <CountUp end={s.end} suffix={s.suffix} decimals={s.decimals || 0} />
+                </div>
                 <div className="text-sm text-muted-foreground font-medium">{s.label}</div>
               </motion.div>
             ))}
