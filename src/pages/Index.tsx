@@ -175,7 +175,9 @@ const Index = () => {
               ))}
             </div>
           </motion.div>
+          </motion.div>
 
+          <motion.div style={{ y: imageY, scale: imageScale, rotate: imageRotate }} className="will-change-transform">
           <motion.div
             key={`img-${currentSlide}`}
             initial={{ opacity: 0, scale: 0.9 }}
@@ -191,10 +193,11 @@ const Index = () => {
                 className="relative w-full max-w-lg animate-float drop-shadow-2xl"
               />
               <motion.div
+                style={{ y: badge1Y }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
-                className="absolute top-1/4 -right-4 glass-card px-4 py-3 flex items-center gap-3 gold-glow-sm"
+                className="absolute top-1/4 -right-4 glass-card px-4 py-3 flex items-center gap-3 gold-glow-sm will-change-transform"
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-primary" />
@@ -205,10 +208,11 @@ const Index = () => {
                 </div>
               </motion.div>
               <motion.div
+                style={{ y: badge2Y }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
-                className="absolute bottom-1/4 -left-4 glass-card px-4 py-3 flex items-center gap-3"
+                className="absolute bottom-1/4 -left-4 glass-card px-4 py-3 flex items-center gap-3 will-change-transform"
               >
                 <div className="flex -space-x-1.5">
                   {[1, 2, 3].map((i) => (
@@ -221,6 +225,7 @@ const Index = () => {
                 </div>
               </motion.div>
             </div>
+          </motion.div>
           </motion.div>
         </div>
       </section>
