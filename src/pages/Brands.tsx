@@ -10,18 +10,39 @@ const Brands = () => {
     viewport: { once: true },
   };
 
+  const totalProducts = products.length;
+  const avgRating = (brandData.reduce((s, b) => s + b.rating, 0) / brandData.length).toFixed(1);
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-main px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-16">
-          <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-4">
-            Our <span className="gold-gradient-text">Partner Brands</span>
-          </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            We curate the finest smart watches from the world's most trusted brands.
-            Every product is 100% authentic with manufacturer warranty.
-          </p>
+        {/* Hero */}
+        <motion.div {...fadeUp} className="relative overflow-hidden rounded-3xl mb-12 p-10 md:p-14 border border-border/60">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-accent/20" />
+          <div className="absolute -top-24 -right-16 w-96 h-96 rounded-full bg-accent/25 blur-[120px]" />
+          <div className="absolute -bottom-24 -left-16 w-96 h-96 rounded-full bg-primary/25 blur-[120px]" />
+          <div className="relative text-center max-w-2xl mx-auto">
+            <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.25em] mb-3 block">Authorised Partners</span>
+            <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-4">
+              Our <span className="gold-gradient-text">Partner Brands</span>
+            </h1>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              We curate the finest smart watches from the world's most trusted brands.
+              Every product is 100% authentic with manufacturer warranty.
+            </p>
+            <div className="grid grid-cols-3 gap-4 mt-8 max-w-md mx-auto">
+              {[
+                { label: "Brands", value: brandData.length + "+" },
+                { label: "Products", value: totalProducts + "+" },
+                { label: "Avg Rating", value: avgRating + "★" },
+              ].map((s) => (
+                <div key={s.label} className="glass-card p-3">
+                  <div className="font-heading text-2xl font-bold gold-gradient-text">{s.value}</div>
+                  <div className="text-[11px] text-muted-foreground uppercase tracking-wider mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* Brands Grid */}
