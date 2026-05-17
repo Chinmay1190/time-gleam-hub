@@ -57,15 +57,32 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen pt-24">
-      <div className="container-main px-4 sm:px-6 lg:px-8 pb-16">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <span className="text-xs font-semibold text-primary uppercase tracking-widest mb-2 block">Collection</span>
-          <h1 className="font-heading text-3xl sm:text-4xl font-bold mb-2">
-            Shop <span className="gold-gradient-text">Smart Watches</span>
-          </h1>
-          <p className="text-muted-foreground">{filtered.length} products found</p>
-        </motion.div>
+      {/* Hero band */}
+      <div className="relative overflow-hidden border-b border-border/60">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/15" />
+        <div className="absolute -top-32 -left-20 w-[28rem] h-[28rem] rounded-full bg-primary/25 blur-[120px]" />
+        <div className="absolute -bottom-32 -right-10 w-[26rem] h-[26rem] rounded-full bg-accent/25 blur-[120px]" />
+        <div className="container-main px-4 sm:px-6 lg:px-8 py-12 relative">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.25em] mb-3 block">The Collection</span>
+            <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-3 leading-tight">
+              Shop <span className="gold-gradient-text">Smart Watches</span>
+            </h1>
+            <p className="text-muted-foreground max-w-xl">
+              {filtered.length} curated timepieces · authentic, warrantied, free shipping above ₹2,000.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-5">
+              {["100% Authentic", "Free Shipping", "7-day Returns", "EMI Available"].map((t) => (
+                <span key={t} className="text-xs px-3 py-1.5 rounded-full bg-card/60 backdrop-blur border border-border/60 text-foreground/80">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="container-main px-4 sm:px-6 lg:px-8 pb-16 pt-8">
 
         {/* Categories */}
         <div className="flex flex-wrap gap-2 mb-6">
