@@ -15,6 +15,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, startOfQuarter, endOfQuarter, startOfDay, endOfDay } from "date-fns";
 import jsPDF from "jspdf";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, RadialBarChart, RadialBar
+} from "recharts";
 
 interface OrderData {
   id: string;
@@ -633,6 +637,193 @@ const Reports = () => {
                         </div>
                       );
                     })}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })()}
+
+        {/* Advanced Charts Dashboard */}
+        {orders.length > 0 && (() => {
+          const allStats = computeStats(orders);
+
+          const statusBreakdown = [
+            { name: "Delivered", value: orders.filter((o) => o.status === "delivered").length, color: "hsl(160 70% 50%)" },
+            { name: "Shipped", value: orders.filter((o) => o.status === "shipped").length, color: "hsl(200 90% 60%)" },
+            { name: "Processing", value: orders.filter((o) => o.status === "processing").length, color: "hsl(40 90% 55%)" },
+            { name: "Out for Delivery", value: orders.filter((o) => o.status === "out_for_delivery").length, color: "hsl(280 70% 60%)" },
+            { name: "Confirmed", value: orders.filter((o) => o.status === "confirmed").length, color: "hsl(220 80% 60%)" },
+            { name: "Pending", value: orders.filter((o) => o.status === "pending").length, color: "hsl(50 90% 55%)" },
+            { name: "Cancelled", value: orders.filter((o) => o.status === "cancelled").length, color: "hsl(0 75% 55%)" },
+          ].filter((s) => s.value > 0);
+
+          const paymentMap = new Map<string, number>();
+          orders.forEach((o) => paymentMap.set(o.payment_method, (paymentMap.get(o.payment_method) || 0) + 1));
+          const paymentBreakdown = Array.from(paymentMap.entries()).map(([name, value], i) => ({
+            name: name.toUpperCase(),
+            value,
+            color: ["hsl(350 72% 55%)", "hsl(200 90% 65%)", "hsl(280 65% 60%)", "hsl(160 65% 50%)", "hsl(40 90% 55%)"][i % 5],
+          }));
+
+          const areaData = Array.from({ length: 6 }).map((_, i) => {
+            const d = subMonths(now, 5 - i);
+            const list = filterOrders(startOfMonth(d), endOfMonth(d));
+            return {
+              month: format(d, "MMM"),
+              revenue: list.reduce((s, o) => s + Number(o.total_amount || 0), 0),
+              orders: list.length,
+              gst: list.reduce((s, o) => s + Number(o.gst_amount || 0), 0),
+            };
+          });
+
+          const splitData = [
+            { name: "Net Revenue", value: Math.max(0, Math.round(allStats.totalRevenue - allStats.totalGST - allStats.totalShipping)), fill: "hsl(350 72% 55%)" },
+            { name: "GST", value: Math.round(allStats.totalGST), fill: "hsl(200 90% 65%)" },
+            { name: "Shipping", value: Math.round(allStats.totalShipping), fill: "hsl(280 65% 60%)" },
+          ];
+          const totalSplit = splitData.reduce((s, x) => s + x.value, 0) || 1;
+
+          const tooltipStyle = {
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: "12px",
+            fontSize: "12px",
+          };
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mb-10"
+            >
+              <div className="mb-5">
+                <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.25em] block">Visual Analytics</span>
+                <h2 className="font-heading text-2xl font-bold">
+                  Charts <span className="gold-gradient-text">& Insights</span>
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="mb-4">
+                      <h3 className="font-heading font-bold text-base flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-accent" /> Order Status Distribution
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Breakdown of all orders by current status</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={statusBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" stroke="hsl(var(--background))" strokeWidth={2}>
+                          {statusBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                        </Pie>
+                        <RTooltip contentStyle={tooltipStyle} />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="mb-4">
+                      <h3 className="font-heading font-bold text-base flex items-center gap-2">
+                        <IndianRupee className="w-4 h-4 text-accent" /> Payment Methods
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">How customers are paying</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={paymentBreakdown} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value" stroke="hsl(var(--background))" strokeWidth={2} label={(e: any) => e.value} labelLine={false}>
+                          {paymentBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                        </Pie>
+                        <RTooltip contentStyle={tooltipStyle} />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden mb-4">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div>
+                      <h3 className="font-heading font-bold text-base flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-accent" /> Revenue & GST — 6 Month Trend
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Stacked area showing growth pattern</p>
+                    </div>
+                    <div className="flex gap-3 text-[11px]">
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary" /> Revenue</span>
+                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-accent" /> GST</span>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={areaData}>
+                      <defs>
+                        <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                        </linearGradient>
+                        <linearGradient id="gradGst" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.6} />
+                          <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                      <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} stroke="hsl(var(--border))" />
+                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} stroke="hsl(var(--border))" tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <RTooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [name === "orders" ? value : formatINR(value), name.charAt(0).toUpperCase() + name.slice(1)]} />
+                      <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#gradRevenue)" />
+                      <Area type="monotone" dataKey="gst" stroke="hsl(var(--accent))" strokeWidth={2} fill="url(#gradGst)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="grid md:grid-cols-2 gap-6 items-center">
+                    <div>
+                      <h3 className="font-heading font-bold text-base flex items-center gap-2 mb-1">
+                        <Percent className="w-4 h-4 text-accent" /> Revenue Composition
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-4">Lifetime split between net revenue, GST and shipping</p>
+                      <div className="space-y-3">
+                        {splitData.map((s) => {
+                          const pct = (s.value / totalSplit) * 100;
+                          return (
+                            <div key={s.name}>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="font-medium">{s.name}</span>
+                                <span className="text-muted-foreground">{formatINR(s.value)} <span className="text-foreground font-bold">({pct.toFixed(1)}%)</span></span>
+                              </div>
+                              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  whileInView={{ width: `${pct}%` }}
+                                  viewport={{ once: true }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  className="h-full rounded-full"
+                                  style={{ background: s.fill }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <RadialBarChart cx="50%" cy="50%" innerRadius="30%" outerRadius="100%" barSize={16} data={splitData}>
+                          <RadialBar background dataKey="value" cornerRadius={8} />
+                          <RTooltip contentStyle={tooltipStyle} formatter={(value: number) => formatINR(value)} />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
