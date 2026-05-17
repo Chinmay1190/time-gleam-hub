@@ -15,6 +15,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, startOfQuarter, endOfQuarter, startOfDay, endOfDay } from "date-fns";
 import jsPDF from "jspdf";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, RadialBarChart, RadialBar
+} from "recharts";
 
 interface OrderData {
   id: string;
