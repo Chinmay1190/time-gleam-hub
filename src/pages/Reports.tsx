@@ -466,30 +466,36 @@ const Reports = () => {
       <div className="container-main px-4 sm:px-6 lg:px-8 max-w-6xl">
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="font-heading text-3xl sm:text-4xl font-bold mb-1">
-                <span className="gold-gradient-text">Reports</span> & Analytics
-              </h1>
-              <p className="text-muted-foreground">View and download your order reports</p>
+          <div className="relative overflow-hidden rounded-3xl border border-border/60 p-6 sm:p-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/15" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-accent/20 blur-[100px]" />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-primary/25 blur-[100px]" />
+            <div className="relative flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.25em] mb-2 block">Insights</span>
+                <h1 className="font-heading text-3xl sm:text-4xl font-bold mb-1">
+                  <span className="gold-gradient-text">Reports</span> & Analytics
+                </h1>
+                <p className="text-muted-foreground">Track performance, growth and download branded PDFs</p>
+              </div>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2 bg-card/60 backdrop-blur">
+                    <CalendarIcon className="w-4 h-4" />
+                    {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <CalendarIcon className="w-4 h-4" />
-                  {selectedDate ? format(selectedDate, "dd MMM yyyy") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
           </div>
         </motion.div>
 
