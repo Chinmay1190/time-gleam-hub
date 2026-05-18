@@ -18,6 +18,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", address: "", city: "", state: "", pincode: "" });
   const [stats, setStats] = useState({ orders: 0, wishlist: 0, spent: 0, delivered: 0 });
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -49,12 +50,13 @@ const Profile = () => {
 
     const loadStats = async () => {
       const [{ data: orders }, { count: wishCount }] = await Promise.all([
-        supabase.from("orders").select("total_amount,status").eq("user_id", user.id),
+        supabase.from("orders").select("id,order_number,total_amount,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("wishlists").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       const totalSpent = (orders || []).reduce((s, o: any) => s + Number(o.total_amount || 0), 0);
       const delivered = (orders || []).filter((o: any) => o.status === "delivered").length;
       setStats({ orders: orders?.length || 0, wishlist: wishCount || 0, spent: totalSpent, delivered });
+      setRecentOrders((orders || []).slice(0, 4));
     };
 
     loadProfile();
