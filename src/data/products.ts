@@ -9,6 +9,10 @@ import watch8 from "@/assets/watch-8.png";
 import watch9 from "@/assets/watch-9.png";
 import watch10 from "@/assets/watch-10.png";
 import watch11 from "@/assets/watch-11.png";
+import watch12 from "@/assets/watch-12.png";
+import watch13 from "@/assets/watch-13.png";
+import watch14 from "@/assets/watch-14.png";
+import watch15 from "@/assets/watch-15.png";
 
 export interface Product {
   id: string;
@@ -107,7 +111,7 @@ export const products: Product[] = [
     brand: "Noise",
     price: 4999,
     originalPrice: 7999,
-    image: watch5,
+    image: watch15,
     galleryImages: [watch5, watch8, watch11, watch3],
     category: "Budget",
     rating: 4.3,
@@ -160,7 +164,7 @@ export const products: Product[] = [
     brand: "Samsung",
     price: 24999,
     originalPrice: 31999,
-    image: watch8,
+    image: watch12,
     galleryImages: [watch8, watch11, watch3, watch6],
     category: "Fitness",
     rating: 4.7,
@@ -196,7 +200,7 @@ export const products: Product[] = [
     brand: "Fossil",
     price: 22999,
     originalPrice: 28999,
-    image: watch2,
+    image: watch13,
     galleryImages: [watch2, watch6, watch10, watch4],
     category: "Luxury",
     rating: 4.6,
@@ -213,7 +217,7 @@ export const products: Product[] = [
     brand: "boAt",
     price: 6999,
     originalPrice: 9999,
-    image: watch3,
+    image: watch14,
     galleryImages: [watch3, watch7, watch11, watch5],
     category: "Outdoor",
     rating: 4.4,
@@ -549,7 +553,7 @@ export const products: Product[] = [
     brand: "boAt",
     price: 8999,
     originalPrice: 12999,
-    image: watch6,
+    image: watch14,
     galleryImages: [watch6, watch8, watch2, watch10],
     category: "Fitness",
     rating: 4.4,
@@ -619,7 +623,7 @@ export const products: Product[] = [
     brand: "Fossil",
     price: 18999,
     originalPrice: 24999,
-    image: watch2,
+    image: watch13,
     galleryImages: [watch2, watch8, watch6, watch10],
     category: "Luxury",
     rating: 4.5,
@@ -654,7 +658,7 @@ export const products: Product[] = [
     brand: "Samsung",
     price: 44999,
     originalPrice: 54999,
-    image: watch4,
+    image: watch12,
     galleryImages: [watch4, watch10, watch8, watch2],
     category: "Outdoor",
     rating: 4.7,
@@ -706,7 +710,7 @@ export const products: Product[] = [
     brand: "boAt",
     price: 4499,
     originalPrice: 6999,
-    image: watch7,
+    image: watch15,
     galleryImages: [watch7, watch2, watch5, watch11],
     category: "Budget",
     rating: 4.2,

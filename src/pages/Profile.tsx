@@ -18,6 +18,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", address: "", city: "", state: "", pincode: "" });
   const [stats, setStats] = useState({ orders: 0, wishlist: 0, spent: 0, delivered: 0 });
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -49,12 +50,13 @@ const Profile = () => {
 
     const loadStats = async () => {
       const [{ data: orders }, { count: wishCount }] = await Promise.all([
-        supabase.from("orders").select("total_amount,status").eq("user_id", user.id),
+        supabase.from("orders").select("id,order_number,total_amount,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("wishlists").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       const totalSpent = (orders || []).reduce((s, o: any) => s + Number(o.total_amount || 0), 0);
       const delivered = (orders || []).filter((o: any) => o.status === "delivered").length;
       setStats({ orders: orders?.length || 0, wishlist: wishCount || 0, spent: totalSpent, delivered });
+      setRecentOrders((orders || []).slice(0, 4));
     };
 
     loadProfile();
@@ -202,6 +204,145 @@ const Profile = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Loyalty Progress + Achievements */}
+        <div className="grid lg:grid-cols-3 gap-4 mb-6">
+          {/* Tier progress card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="glass-card p-6 lg:col-span-2 relative overflow-hidden"
+          >
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block">Loyalty Progress</span>
+                  <h3 className="font-heading font-bold text-lg flex items-center gap-2">
+                    <Award className={`w-5 h-5 bg-gradient-to-r ${tier.color} bg-clip-text`} style={{ color: "transparent", WebkitTextStroke: "1px currentColor" } as any} />
+                    You're <span className={`bg-gradient-to-r ${tier.color} bg-clip-text text-transparent`}>{tier.name}</span>
+                  </h3>
+                </div>
+                <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+                  ₹<CountUp end={stats.spent} /> spent
+                </span>
+              </div>
+              {(() => {
+                const tiers = [
+                  { name: "Bronze", min: 0, color: "from-orange-300 to-orange-600" },
+                  { name: "Silver", min: 10000, color: "from-slate-300 to-slate-500" },
+                  { name: "Gold", min: 50000, color: "from-amber-300 to-amber-500" },
+                  { name: "Platinum", min: 100000, color: "from-purple-400 to-pink-400" },
+                ];
+                const next = tiers.find(t => t.min > stats.spent);
+                const current = [...tiers].reverse().find(t => t.min <= stats.spent) || tiers[0];
+                const progress = next ? ((stats.spent - current.min) / (next.min - current.min)) * 100 : 100;
+                return (
+                  <>
+                    <div className="h-3 rounded-full bg-muted/50 overflow-hidden mb-3">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(progress, 100)}%` }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className={`h-full rounded-full bg-gradient-to-r ${current.color} shadow-lg`}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span><span className="font-bold text-foreground">{current.name}</span> · ₹{formatINR(current.min)}</span>
+                      {next ? (
+                        <span>₹<span className="font-bold text-accent">{formatINR(next.min - stats.spent)}</span> to <span className="font-bold text-foreground">{next.name}</span></span>
+                      ) : (
+                        <span className="font-bold text-amber-400">🎉 Max tier unlocked</span>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </motion.div>
+
+          {/* Achievements badges */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass-card p-6"
+          >
+            <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block mb-2">Achievements</span>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "First Buy", unlocked: stats.orders >= 1, icon: "🎁" },
+                { label: "5 Orders", unlocked: stats.orders >= 5, icon: "🛍️" },
+                { label: "10 Orders", unlocked: stats.orders >= 10, icon: "🏆" },
+                { label: "₹10k+", unlocked: stats.spent >= 10000, icon: "💎" },
+                { label: "₹50k+", unlocked: stats.spent >= 50000, icon: "👑" },
+                { label: "Wishlist", unlocked: stats.wishlist >= 1, icon: "❤️" },
+              ].map(a => (
+                <div
+                  key={a.label}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border transition-all ${
+                    a.unlocked ? "bg-gradient-to-br from-primary/20 to-accent/10 border-primary/40 shadow-inner" : "bg-muted/20 border-border/40 opacity-40 grayscale"
+                  }`}
+                  title={a.label}
+                >
+                  <span className="text-xl">{a.icon}</span>
+                  <span className="text-[8px] font-semibold text-center leading-tight">{a.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Recent Orders */}
+        {recentOrders.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="glass-card p-6 mb-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block">Recent Activity</span>
+                <h3 className="font-heading font-bold text-lg">Latest Orders</h3>
+              </div>
+              <Link to="/orders" className="text-xs text-accent font-semibold hover:underline inline-flex items-center gap-1">
+                View All <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {recentOrders.map((o, i) => {
+                const statusColor =
+                  o.status === "delivered" ? "bg-green-500/15 text-green-400 border-green-500/30" :
+                  o.status === "cancelled" ? "bg-red-500/15 text-red-400 border-red-500/30" :
+                  o.status === "shipped" || o.status === "out_for_delivery" ? "bg-blue-500/15 text-blue-400 border-blue-500/30" :
+                  "bg-amber-500/15 text-amber-400 border-amber-500/30";
+                return (
+                  <Link
+                    key={o.id}
+                    to={`/orders`}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-primary/40 transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center flex-shrink-0">
+                      <Package className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold truncate">{o.order_number}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-heading font-bold text-primary">₹{formatINR(o.total_amount)}</p>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-bold uppercase tracking-wider ${statusColor}`}>
+                        {o.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* Edit Form */}
         <AnimatePresence>

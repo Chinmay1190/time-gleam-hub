@@ -15,12 +15,68 @@ const brandStyles: Record<string, { mark: string; from: string; to: string; ring
   boAt:        { mark: "boAt",    from: "#c8102e", to: "#6f0a1e", ring: "#ff5870", font: "font-heading tracking-tight text-base italic" },
 };
 
-// Lucide Apple-style logo for the Apple tile only
-const AppleMark = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white/90" aria-hidden>
-    <path d="M16.365 1.43c0 1.14-.46 2.23-1.21 3-.79.85-2.07 1.5-3.1 1.42-.12-1.1.45-2.27 1.16-3 .8-.85 2.18-1.47 3.15-1.42zM20.86 17.4c-.5 1.16-.74 1.68-1.38 2.71-.9 1.45-2.16 3.25-3.73 3.26-1.4.01-1.76-.92-3.66-.91-1.9.01-2.29.93-3.69.92-1.56-.01-2.77-1.65-3.66-3.09C2.27 17.43 1.92 13 3.36 10.6c1.02-1.7 2.62-2.7 4.12-2.7 1.53 0 2.5.83 3.77.83 1.23 0 1.98-.84 3.76-.84 1.34 0 2.76.73 3.78 2-3.33 1.82-2.79 6.58.07 7.51z" />
-  </svg>
-);
+// Distinctive SVG marks per brand — Apple silhouette, Samsung oval wordmark badge,
+// Garmin triangle, Fossil anvil/diamond, Fitbit dot-grid, Noise speaker waves,
+// Fire-Boltt flame, boAt anchor
+const BrandLogoMark = ({ name, className = "w-7 h-7" }: { name: string; className?: string }) => {
+  const cls = className + " fill-white/95";
+  switch (name) {
+    case "Apple":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M16.365 1.43c0 1.14-.46 2.23-1.21 3-.79.85-2.07 1.5-3.1 1.42-.12-1.1.45-2.27 1.16-3 .8-.85 2.18-1.47 3.15-1.42zM20.86 17.4c-.5 1.16-.74 1.68-1.38 2.71-.9 1.45-2.16 3.25-3.73 3.26-1.4.01-1.76-.92-3.66-.91-1.9.01-2.29.93-3.69.92-1.56-.01-2.77-1.65-3.66-3.09C2.27 17.43 1.92 13 3.36 10.6c1.02-1.7 2.62-2.7 4.12-2.7 1.53 0 2.5.83 3.77.83 1.23 0 1.98-.84 3.76-.84 1.34 0 2.76.73 3.78 2-3.33 1.82-2.79 6.58.07 7.51z" />
+        </svg>
+      );
+    case "Samsung":
+      return (
+        <svg viewBox="0 0 40 24" className={className} aria-hidden>
+          <rect x="1" y="3" width="38" height="18" rx="9" className="fill-white/15 stroke-white/40" strokeWidth="1" />
+          <text x="20" y="16" textAnchor="middle" className="fill-white" fontSize="9" fontWeight="800" letterSpacing="1.5">SAMSUNG</text>
+        </svg>
+      );
+    case "Garmin":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M12 2L2 20h20L12 2zm0 5l6 10H6l6-10z" />
+        </svg>
+      );
+    case "Fossil":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M12 2l8 6-8 14L4 8l8-6zm0 3.5L7 9l5 9 5-9-5-3.5z" />
+        </svg>
+      );
+    case "Fitbit":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <circle cx="4" cy="12" r="2" /><circle cx="10" cy="6" r="2" /><circle cx="10" cy="12" r="2.5" /><circle cx="10" cy="18" r="2" />
+          <circle cx="16" cy="6" r="2.5" /><circle cx="16" cy="12" r="3" /><circle cx="16" cy="18" r="2.5" />
+          <circle cx="22" cy="12" r="2" />
+        </svg>
+      );
+    case "Noise":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M3 9v6h3l5 4V5L6 9H3zm12 3a4 4 0 00-2-3.46v6.92A4 4 0 0015 12zm-2-7v2.05a6 6 0 010 9.9V19a8 8 0 000-14z" />
+        </svg>
+      );
+    case "Fire-Boltt":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M12 2l-1.5 5L6 5l2.5 5L3 11l4.5 3L4 19l6-2 1 5 1.5-4.5L17 19l-2-5 5-1-4-3 3-5-5 1-2-4z" />
+        </svg>
+      );
+    case "boAt":
+      return (
+        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
+          <path d="M12 2a3 3 0 100 6 3 3 0 000-6zm0 7v3H8v2h4v6.5L4.5 14.5 6 13l4 3v-4h4v4l4-3 1.5 1.5L14 20.5V14h4v-2h-4V9h-2z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
 
 const Brands = () => {
   const fadeUp = {
@@ -33,7 +89,7 @@ const Brands = () => {
   const avgRating = (brandData.reduce((s, b) => s + b.rating, 0) / brandData.length).toFixed(1);
   const featuredProducts = [...products]
     .sort((a, b) => b.rating - a.rating)
-    .slice(0, 8);
+    .slice(0, 12);
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -82,11 +138,8 @@ const Brands = () => {
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                        style={{ boxShadow: `inset 0 0 30px ${s.ring}40, 0 0 30px ${s.ring}30` }} />
-                  {b.name === "Apple" ? (
-                    <AppleMark />
-                  ) : (
-                    <span className={`text-white ${s.font} font-bold`}>{s.mark}</span>
-                  )}
+                  <BrandLogoMark name={b.name} />
+
                   <span className="absolute bottom-1 right-2 text-[8px] text-white/60 font-semibold tracking-wider">{String(i + 1).padStart(2, "0")}</span>
                 </Link>
               );
@@ -115,11 +168,7 @@ const Brands = () => {
                        style={{ background: `radial-gradient(circle at 80% 50%, ${s.ring}60, transparent 60%)` }} />
                   <div className="relative flex items-center gap-3">
                     <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
-                      {brand.name === "Apple" ? (
-                        <AppleMark />
-                      ) : (
-                        <span className={`text-white ${s.font} font-bold`}>{s.mark}</span>
-                      )}
+                      <BrandLogoMark name={brand.name} />
                     </div>
                     <div className="text-white">
                       <h2 className="font-heading text-xl font-bold leading-tight">{brand.name}</h2>
@@ -135,10 +184,10 @@ const Brands = () => {
                 <div className="p-6 flex flex-col gap-4 flex-1">
                   <p className="text-sm text-muted-foreground leading-relaxed">{brand.description}</p>
 
-                  {/* Product image grid - 4 products */}
+                  {/* Product image grid - 6 products */}
                   {brandProducts.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {brandProducts.slice(0, 4).map((p) => (
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {brandProducts.slice(0, 6).map((p) => (
                         <Link
                           key={p.id}
                           to={`/product/${p.id}`}
@@ -147,17 +196,19 @@ const Brands = () => {
                           <img
                             src={p.image}
                             alt={p.name}
+                            loading="lazy"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[9px] text-white font-semibold truncate">{p.name}</p>
-                            <p className="text-[9px] text-accent font-bold">₹{p.price.toLocaleString("en-IN")}</p>
+                          <div className="absolute bottom-0.5 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[8px] text-white font-semibold truncate">{p.name}</p>
+                            <p className="text-[8px] text-accent font-bold">₹{(p.price/1000).toFixed(0)}k</p>
                           </div>
                         </Link>
                       ))}
                     </div>
                   )}
+
 
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
                     <span className="text-xs text-muted-foreground">
