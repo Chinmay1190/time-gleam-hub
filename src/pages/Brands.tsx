@@ -138,7 +138,8 @@ const Brands = () => {
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                        style={{ boxShadow: `inset 0 0 30px ${s.ring}40, 0 0 30px ${s.ring}30` }} />
-                  <BrandLogoMark name={(typeof brand !== "undefined" ? brand : b).name} />
+                  <BrandLogoMark name={b.name} />
+
                   <span className="absolute bottom-1 right-2 text-[8px] text-white/60 font-semibold tracking-wider">{String(i + 1).padStart(2, "0")}</span>
                 </Link>
               );
@@ -167,7 +168,7 @@ const Brands = () => {
                        style={{ background: `radial-gradient(circle at 80% 50%, ${s.ring}60, transparent 60%)` }} />
                   <div className="relative flex items-center gap-3">
                     <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
-                      <BrandLogoMark name={(typeof brand !== "undefined" ? brand : b).name} />
+                      <BrandLogoMark name={brand.name} />
                     </div>
                     <div className="text-white">
                       <h2 className="font-heading text-xl font-bold leading-tight">{brand.name}</h2>
@@ -183,10 +184,10 @@ const Brands = () => {
                 <div className="p-6 flex flex-col gap-4 flex-1">
                   <p className="text-sm text-muted-foreground leading-relaxed">{brand.description}</p>
 
-                  {/* Product image grid - 4 products */}
+                  {/* Product image grid - 6 products */}
                   {brandProducts.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {brandProducts.slice(0, 4).map((p) => (
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {brandProducts.slice(0, 6).map((p) => (
                         <Link
                           key={p.id}
                           to={`/product/${p.id}`}
@@ -195,17 +196,19 @@ const Brands = () => {
                           <img
                             src={p.image}
                             alt={p.name}
+                            loading="lazy"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-1 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[9px] text-white font-semibold truncate">{p.name}</p>
-                            <p className="text-[9px] text-accent font-bold">₹{p.price.toLocaleString("en-IN")}</p>
+                          <div className="absolute bottom-0.5 left-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[8px] text-white font-semibold truncate">{p.name}</p>
+                            <p className="text-[8px] text-accent font-bold">₹{(p.price/1000).toFixed(0)}k</p>
                           </div>
                         </Link>
                       ))}
                     </div>
                   )}
+
 
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
                     <span className="text-xs text-muted-foreground">
