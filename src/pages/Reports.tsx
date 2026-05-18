@@ -831,6 +831,107 @@ const Reports = () => {
           );
         })()}
 
+        {/* Weekly Activity + Order Funnel */}
+        {orders.length > 0 && (() => {
+          const weekData = Array.from({ length: 7 }).map((_, i) => {
+            const d = new Date(now);
+            d.setDate(d.getDate() - (6 - i));
+            const list = filterOrders(startOfDay(d), endOfDay(d));
+            return { day: format(d, "EEE"), orders: list.length, revenue: list.reduce((s, o) => s + Number(o.total_amount || 0), 0) };
+          });
+
+          const funnelSteps = [
+            { name: "Placed", count: orders.length, color: "hsl(220 80% 60%)" },
+            { name: "Confirmed", count: orders.filter(o => ["confirmed","processing","shipped","out_for_delivery","delivered"].includes(o.status)).length, color: "hsl(280 70% 60%)" },
+            { name: "Shipped", count: orders.filter(o => ["shipped","out_for_delivery","delivered"].includes(o.status)).length, color: "hsl(200 90% 60%)" },
+            { name: "Delivered", count: orders.filter(o => o.status === "delivered").length, color: "hsl(160 70% 50%)" },
+          ];
+          const funnelMax = Math.max(...funnelSteps.map(f => f.count), 1);
+
+          const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", fontSize: "12px" };
+
+          return (
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                {/* Weekly Activity Bar Chart */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-3">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-heading font-bold text-base flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-accent" /> Last 7 Days Activity
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Daily order volume & revenue</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-1 rounded-full uppercase tracking-wider">7 Day</span>
+                    </div>
+                    <div className="flex items-end justify-between gap-2 h-44">
+                      {weekData.map((d, i) => {
+                        const max = Math.max(...weekData.map(x => x.revenue), 1);
+                        const h = (d.revenue / max) * 100;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group">
+                            <span className="text-[10px] font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity">{d.orders}</span>
+                            <div className="w-full flex-1 flex items-end">
+                              <motion.div
+                                initial={{ height: 0 }}
+                                whileInView={{ height: `${Math.max(h, 3)}%` }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.06, duration: 0.5 }}
+                                className="w-full rounded-t-md bg-gradient-to-t from-accent to-accent/30 group-hover:from-primary group-hover:to-primary/30 transition-colors"
+                              />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">{d.day}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Order Funnel */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm lg:col-span-2">
+                  <CardContent className="p-6">
+                    <div className="mb-4">
+                      <h3 className="font-heading font-bold text-base flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-accent" /> Order Funnel
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Lifecycle conversion</p>
+                    </div>
+                    <div className="space-y-3">
+                      {funnelSteps.map((step, i) => {
+                        const widthPct = (step.count / funnelMax) * 100;
+                        const conversion = i === 0 ? 100 : funnelSteps[0].count > 0 ? (step.count / funnelSteps[0].count) * 100 : 0;
+                        return (
+                          <div key={step.name}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="font-medium">{step.name}</span>
+                              <span className="text-muted-foreground"><span className="font-bold text-foreground">{step.count}</span> <span className="text-[10px]">({conversion.toFixed(0)}%)</span></span>
+                            </div>
+                            <div className="h-7 rounded-lg bg-muted/40 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${Math.max(widthPct, 4)}%` }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.08, duration: 0.7, ease: "easeOut" }}
+                                className="h-full rounded-lg flex items-center justify-end pr-3"
+                                style={{ background: `linear-gradient(90deg, ${step.color}40, ${step.color})` }}
+                              >
+                                <span className="text-[10px] font-bold text-white">{step.count}</span>
+                              </motion.div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          );
+        })()}
+
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
