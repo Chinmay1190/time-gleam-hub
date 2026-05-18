@@ -89,7 +89,7 @@ const Brands = () => {
   const avgRating = (brandData.reduce((s, b) => s + b.rating, 0) / brandData.length).toFixed(1);
   const featuredProducts = [...products]
     .sort((a, b) => b.rating - a.rating)
-    .slice(0, 8);
+    .slice(0, 12);
 
   return (
     <div className="min-h-screen pt-24 pb-16">
