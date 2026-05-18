@@ -9,6 +9,10 @@ import watch8 from "@/assets/watch-8.png";
 import watch9 from "@/assets/watch-9.png";
 import watch10 from "@/assets/watch-10.png";
 import watch11 from "@/assets/watch-11.png";
+import watch12 from "@/assets/watch-12.png";
+import watch13 from "@/assets/watch-13.png";
+import watch14 from "@/assets/watch-14.png";
+import watch15 from "@/assets/watch-15.png";
 
 export interface Product {
   id: string;
