@@ -82,7 +82,43 @@ const Shop = () => {
         </div>
       </div>
 
-      <div className="container-main px-4 sm:px-6 lg:px-8 pb-16 pt-8">
+      {/* Trending strip */}
+      <div className="container-main px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-accent" />
+            <h2 className="font-heading font-bold text-lg">Trending Now</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">Top-rated picks across categories</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
+          {[...products].sort((a,b) => b.rating - a.rating).slice(0, 6).map((p, i) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+            >
+              <Link to={`/product/${p.id}`} className="group block glass-card-hover overflow-hidden">
+                <div className="relative aspect-square bg-gradient-to-br from-muted/40 to-muted/10 overflow-hidden">
+                  <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute top-2 left-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-background/70 backdrop-blur text-[10px] font-bold">
+                    <Star className="w-2.5 h-2.5 text-accent fill-accent" />{p.rating}
+                  </div>
+                </div>
+                <div className="p-2.5">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider truncate">{p.brand}</p>
+                  <p className="text-xs font-semibold truncate">{p.name}</p>
+                  <p className="text-xs font-bold gold-gradient-text mt-0.5">₹{p.price.toLocaleString("en-IN")}</p>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="container-main px-4 sm:px-6 lg:px-8 pb-16">
+
 
         {/* Categories */}
         <div className="flex flex-wrap gap-2 mb-6">
