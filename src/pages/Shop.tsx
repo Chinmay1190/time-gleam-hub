@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, X } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag } from "lucide-react";
+import { useSearchParams, Link } from "react-router-dom";
 import { products, brands } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 
