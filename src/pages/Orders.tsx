@@ -65,11 +65,36 @@ const Orders = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [query, setQuery] = useState("");
+
   const formatPrice = (p: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(p);
 
   const totalSpent = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
   const deliveredCount = orders.filter(o => o.status === "delivered").length;
+  const activeCount = orders.filter(o => !["delivered","cancelled"].includes(o.status)).length;
+  const avgOrder = orders.length ? totalSpent / orders.length : 0;
+
+  const filteredOrders = useMemo(() => {
+    let list = orders;
+    if (filter === "active") list = list.filter(o => !["delivered","cancelled"].includes(o.status));
+    else if (filter === "delivered") list = list.filter(o => o.status === "delivered");
+    else if (filter === "cancelled") list = list.filter(o => o.status === "cancelled");
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      list = list.filter(o => o.order_number?.toLowerCase().includes(q) || o.status?.toLowerCase().includes(q));
+    }
+    return list;
+  }, [orders, filter, query]);
+
+  const counts = {
+    all: orders.length,
+    active: activeCount,
+    delivered: deliveredCount,
+    cancelled: orders.filter(o => o.status === "cancelled").length,
+  };
+
 
   if (!user) {
     return (
