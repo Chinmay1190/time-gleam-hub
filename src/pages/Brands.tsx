@@ -4,78 +4,81 @@ import { Link } from "react-router-dom";
 import { brandData, products } from "@/data/products";
 
 // Brand identity map — gradient + monogram styling per brand
-const brandStyles: Record<string, { mark: string; from: string; to: string; ring: string; font: string }> = {
-  Apple:       { mark: "",     from: "#3a3a3c", to: "#1d1d1f", ring: "#a1a1a6", font: "font-heading tracking-tight" },
-  Samsung:     { mark: "SAMSUNG", from: "#1428a0", to: "#0a1670", ring: "#5b7fff", font: "font-heading tracking-[0.18em] text-[10px]" },
-  Garmin:      { mark: "GARMIN",  from: "#007cc3", to: "#003a6b", ring: "#4ab0ff", font: "font-heading tracking-[0.22em] text-[10px]" },
-  Fossil:      { mark: "FOSSIL",  from: "#8b5a2b", to: "#3d2817", ring: "#d4a574", font: "font-heading tracking-[0.28em] text-[10px]" },
-  Fitbit:      { mark: "fitbit",  from: "#00b0b9", to: "#005f66", ring: "#5be2ea", font: "font-heading tracking-tight text-sm" },
-  Noise:       { mark: "NOISE",   from: "#ff3366", to: "#a3163f", ring: "#ff7a99", font: "font-heading tracking-[0.25em] text-[10px]" },
-  "Fire-Boltt":{ mark: "FIRE", from: "#ff6b00", to: "#b03c00", ring: "#ffa055", font: "font-heading tracking-[0.28em] text-[10px]" },
-  boAt:        { mark: "boAt",    from: "#c8102e", to: "#6f0a1e", ring: "#ff5870", font: "font-heading tracking-tight text-base italic" },
+const brandStyles: Record<string, { from: string; to: string; ring: string }> = {
+  Apple:        { from: "#3a3a3c", to: "#0a0a0c", ring: "#a1a1a6" },
+  Samsung:      { from: "#1428a0", to: "#070d4a", ring: "#5b7fff" },
+  Garmin:       { from: "#007cc3", to: "#003158", ring: "#4ab0ff" },
+  Fossil:       { from: "#8b5a2b", to: "#2a1810", ring: "#d4a574" },
+  Fitbit:       { from: "#00b0b9", to: "#003a44", ring: "#5be2ea" },
+  Noise:        { from: "#ff3366", to: "#7a0e2c", ring: "#ff7a99" },
+  "Fire-Boltt": { from: "#ff6b00", to: "#8a2e00", ring: "#ffa055" },
+  boAt:         { from: "#c8102e", to: "#52071a", ring: "#ff5870" },
 };
 
-// Distinctive SVG marks per brand — Apple silhouette, Samsung oval wordmark badge,
-// Garmin triangle, Fossil anvil/diamond, Fitbit dot-grid, Noise speaker waves,
-// Fire-Boltt flame, boAt anchor
-const BrandLogoMark = ({ name, className = "w-7 h-7" }: { name: string; className?: string }) => {
-  const cls = className + " fill-white/95";
+// Refined brand SVG marks — closer to actual brand identities
+const BrandLogoMark = ({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) => {
+  const dim = size === "sm" ? "w-6 h-6" : size === "lg" ? "w-12 h-12" : "w-9 h-9";
   switch (name) {
     case "Apple":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M16.365 1.43c0 1.14-.46 2.23-1.21 3-.79.85-2.07 1.5-3.1 1.42-.12-1.1.45-2.27 1.16-3 .8-.85 2.18-1.47 3.15-1.42zM20.86 17.4c-.5 1.16-.74 1.68-1.38 2.71-.9 1.45-2.16 3.25-3.73 3.26-1.4.01-1.76-.92-3.66-.91-1.9.01-2.29.93-3.69.92-1.56-.01-2.77-1.65-3.66-3.09C2.27 17.43 1.92 13 3.36 10.6c1.02-1.7 2.62-2.7 4.12-2.7 1.53 0 2.5.83 3.77.83 1.23 0 1.98-.84 3.76-.84 1.34 0 2.76.73 3.78 2-3.33 1.82-2.79 6.58.07 7.51z" />
+        <svg viewBox="0 0 24 24" className={`${dim} fill-white drop-shadow-md`} aria-hidden>
+          <path d="M17.05 12.04c-.03-3.05 2.49-4.51 2.6-4.58-1.41-2.07-3.62-2.35-4.41-2.39-1.88-.19-3.66 1.1-4.62 1.1-.95 0-2.42-1.07-3.97-1.04-2.04.03-3.93 1.19-4.98 3.02-2.12 3.68-.54 9.13 1.53 12.12 1.01 1.46 2.22 3.11 3.81 3.05 1.53-.06 2.11-.99 3.97-.99s2.38.99 4 .96c1.65-.03 2.7-1.49 3.71-2.96 1.17-1.7 1.65-3.35 1.68-3.44-.04-.02-3.22-1.24-3.32-4.85zM14.11 4.55c.85-1.03 1.42-2.46 1.27-3.88-1.22.05-2.71.81-3.59 1.83-.78.91-1.47 2.38-1.29 3.77 1.37.11 2.76-.69 3.61-1.72z"/>
         </svg>
       );
     case "Samsung":
       return (
-        <svg viewBox="0 0 40 24" className={className} aria-hidden>
-          <rect x="1" y="3" width="38" height="18" rx="9" className="fill-white/15 stroke-white/40" strokeWidth="1" />
-          <text x="20" y="16" textAnchor="middle" className="fill-white" fontSize="9" fontWeight="800" letterSpacing="1.5">SAMSUNG</text>
+        <svg viewBox="0 0 80 24" className={`${size === "lg" ? "w-20 h-6" : "w-16 h-5"}`} aria-hidden>
+          <rect x="0" y="0" width="80" height="24" rx="12" className="fill-white/10" />
+          <text x="40" y="16" textAnchor="middle" className="fill-white" fontSize="11" fontWeight="900" letterSpacing="1.8" fontFamily="Arial, sans-serif">SAMSUNG</text>
         </svg>
       );
     case "Garmin":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M12 2L2 20h20L12 2zm0 5l6 10H6l6-10z" />
+        <svg viewBox="0 0 24 24" className={`${dim} fill-white drop-shadow-md`} aria-hidden>
+          <path d="M12 2L1.5 21.5h21L12 2zm0 4.8l7.2 13.5H4.8L12 6.8z"/>
+          <circle cx="12" cy="15" r="1.5"/>
         </svg>
       );
     case "Fossil":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M12 2l8 6-8 14L4 8l8-6zm0 3.5L7 9l5 9 5-9-5-3.5z" />
+        <svg viewBox="0 0 70 24" className={`${size === "lg" ? "w-20 h-6" : "w-16 h-5"}`} aria-hidden>
+          <text x="35" y="17" textAnchor="middle" className="fill-white" fontSize="13" fontWeight="900" letterSpacing="2.5" fontFamily="Georgia, serif">FOSSIL</text>
         </svg>
       );
     case "Fitbit":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <circle cx="4" cy="12" r="2" /><circle cx="10" cy="6" r="2" /><circle cx="10" cy="12" r="2.5" /><circle cx="10" cy="18" r="2" />
-          <circle cx="16" cy="6" r="2.5" /><circle cx="16" cy="12" r="3" /><circle cx="16" cy="18" r="2.5" />
-          <circle cx="22" cy="12" r="2" />
+        <svg viewBox="0 0 24 24" className={`${dim} fill-white drop-shadow-md`} aria-hidden>
+          <circle cx="3" cy="12" r="1.5"/>
+          <circle cx="8" cy="7" r="1.8"/><circle cx="8" cy="12" r="2"/><circle cx="8" cy="17" r="1.8"/>
+          <circle cx="13" cy="4.5" r="2"/><circle cx="13" cy="12" r="2.5"/><circle cx="13" cy="19.5" r="2"/>
+          <circle cx="18" cy="7" r="1.8"/><circle cx="18" cy="12" r="2"/><circle cx="18" cy="17" r="1.8"/>
+          <circle cx="23" cy="12" r="1.5"/>
         </svg>
       );
     case "Noise":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M3 9v6h3l5 4V5L6 9H3zm12 3a4 4 0 00-2-3.46v6.92A4 4 0 0015 12zm-2-7v2.05a6 6 0 010 9.9V19a8 8 0 000-14z" />
+        <svg viewBox="0 0 70 24" className={`${size === "lg" ? "w-20 h-6" : "w-16 h-5"}`} aria-hidden>
+          <text x="35" y="17" textAnchor="middle" className="fill-white" fontSize="13" fontWeight="900" letterSpacing="1.5" fontFamily="Impact, sans-serif">NOISE</text>
         </svg>
       );
     case "Fire-Boltt":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M12 2l-1.5 5L6 5l2.5 5L3 11l4.5 3L4 19l6-2 1 5 1.5-4.5L17 19l-2-5 5-1-4-3 3-5-5 1-2-4z" />
+        <svg viewBox="0 0 24 24" className={`${dim} fill-white drop-shadow-md`} aria-hidden>
+          <path d="M13.5 1.5c-1 3 1 4 1 6.5C14.5 10 13 11 13 11s-.5-1.5-2-2c1 3-2 4-2 7 0 3.6 3 6.5 6.5 6.5S22 19.6 22 16c0-5-4-7.5-4-10.5 0-2-1.5-3.5-4.5-4z"/>
         </svg>
       );
     case "boAt":
       return (
-        <svg viewBox="0 0 24 24" className={cls} aria-hidden>
-          <path d="M12 2a3 3 0 100 6 3 3 0 000-6zm0 7v3H8v2h4v6.5L4.5 14.5 6 13l4 3v-4h4v4l4-3 1.5 1.5L14 20.5V14h4v-2h-4V9h-2z" />
+        <svg viewBox="0 0 60 24" className={`${size === "lg" ? "w-16 h-6" : "w-12 h-5"}`} aria-hidden>
+          <text x="30" y="18" textAnchor="middle" className="fill-white" fontSize="16" fontWeight="900" fontStyle="italic" fontFamily="Arial Black, sans-serif">boAt</text>
         </svg>
       );
     default:
       return null;
   }
 };
+
+
 
 
 const Brands = () => {
@@ -138,7 +141,7 @@ const Brands = () => {
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                        style={{ boxShadow: `inset 0 0 30px ${s.ring}40, 0 0 30px ${s.ring}30` }} />
-                  <BrandLogoMark name={b.name} />
+                  <BrandLogoMark name={b.name} size="md" />
 
                   <span className="absolute bottom-1 right-2 text-[8px] text-white/60 font-semibold tracking-wider">{String(i + 1).padStart(2, "0")}</span>
                 </Link>
@@ -167,8 +170,8 @@ const Brands = () => {
                   <div className="absolute inset-0 opacity-30"
                        style={{ background: `radial-gradient(circle at 80% 50%, ${s.ring}60, transparent 60%)` }} />
                   <div className="relative flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
-                      <BrandLogoMark name={brand.name} />
+                    <div className="min-w-14 h-14 px-3 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
+                      <BrandLogoMark name={brand.name} size="lg" />
                     </div>
                     <div className="text-white">
                       <h2 className="font-heading text-xl font-bold leading-tight">{brand.name}</h2>

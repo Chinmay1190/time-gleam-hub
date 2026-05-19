@@ -931,6 +931,63 @@ const Reports = () => {
           );
         })()}
 
+        {/* Best Day & Quick Insights */}
+        {orders.length > 0 && (() => {
+          const dayMap = new Map<string, { count: number; revenue: number }>();
+          orders.forEach((o) => {
+            const k = format(new Date(o.created_at), "EEEE");
+            const cur = dayMap.get(k) || { count: 0, revenue: 0 };
+            cur.count += 1;
+            cur.revenue += Number(o.total_amount || 0);
+            dayMap.set(k, cur);
+          });
+          const bestDay = Array.from(dayMap.entries()).sort((a, b) => b[1].revenue - a[1].revenue)[0];
+          const biggestOrder = [...orders].sort((a, b) => Number(b.total_amount) - Number(a.total_amount))[0];
+          const deliveryRate = orders.length ? (orders.filter(o => o.status === "delivered").length / orders.length) * 100 : 0;
+          const cancelRate = orders.length ? (orders.filter(o => o.status === "cancelled").length / orders.length) * 100 : 0;
+          const avgGst = orders.length ? orders.reduce((s, o) => s + Number(o.gst_amount || 0), 0) / orders.length : 0;
+
+          const insights = [
+            { label: "Best Shopping Day", value: bestDay ? bestDay[0] : "—", sub: bestDay ? `${bestDay[1].count} orders · ${formatINR(bestDay[1].revenue)}` : "", icon: CalendarIcon, color: "text-amber-400", bg: "bg-amber-500/10" },
+            { label: "Biggest Order", value: biggestOrder ? formatINR(Number(biggestOrder.total_amount)) : "—", sub: biggestOrder ? biggestOrder.order_number : "", icon: Sparkles, color: "text-purple-400", bg: "bg-purple-500/10" },
+            { label: "Delivery Success", value: deliveryRate.toFixed(0) + "%", sub: `${orders.filter(o => o.status === "delivered").length} of ${orders.length} delivered`, icon: TruckIcon, color: "text-green-400", bg: "bg-green-500/10" },
+            { label: "Avg GST / Order", value: formatINR(Math.round(avgGst)), sub: cancelRate.toFixed(0) + "% cancellation rate", icon: Percent, color: "text-blue-400", bg: "bg-blue-500/10" },
+          ];
+
+          return (
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10">
+              <div className="mb-5">
+                <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.25em] block">Smart Insights</span>
+                <h2 className="font-heading text-2xl font-bold">
+                  Personal <span className="gold-gradient-text">Highlights</span>
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {insights.map((insight, i) => (
+                  <motion.div
+                    key={insight.label}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="glass-card p-5 relative overflow-hidden group hover:border-accent/30 transition-all"
+                  >
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors" />
+                    <div className={`relative w-10 h-10 rounded-xl ${insight.bg} ${insight.color} flex items-center justify-center mb-3`}>
+                      <insight.icon className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{insight.label}</p>
+                    <p className="font-heading font-bold text-lg mt-0.5 truncate">{insight.value}</p>
+                    {insight.sub && <p className="text-[11px] text-muted-foreground mt-1 truncate">{insight.sub}</p>}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
+
+
+
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
