@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Package, ChevronRight, Clock, Truck, CheckCircle, MapPin, XCircle, ShoppingBag, TrendingUp, ArrowRight } from "lucide-react";
+import { Package, ChevronRight, Clock, Truck, CheckCircle, MapPin, XCircle, ShoppingBag, TrendingUp, ArrowRight, Search, IndianRupee } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 const statusConfig: Record<string, { icon: any; color: string; label: string; bg: string }> = {
   pending: { icon: Clock, color: "text-yellow-500", label: "Pending", bg: "bg-yellow-500/10" },
@@ -15,6 +16,15 @@ const statusConfig: Record<string, { icon: any; color: string; label: string; bg
   delivered: { icon: CheckCircle, color: "text-green-500", label: "Delivered", bg: "bg-green-500/10" },
   cancelled: { icon: XCircle, color: "text-destructive", label: "Cancelled", bg: "bg-destructive/10" },
 };
+
+const FILTER_TABS = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "delivered", label: "Delivered" },
+  { key: "cancelled", label: "Cancelled" },
+] as const;
+type FilterKey = typeof FILTER_TABS[number]["key"];
+
 
 const Orders = () => {
   const { user } = useAuth();
