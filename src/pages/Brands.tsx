@@ -141,7 +141,7 @@ const Brands = () => {
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                        style={{ boxShadow: `inset 0 0 30px ${s.ring}40, 0 0 30px ${s.ring}30` }} />
-                  <BrandLogoMark name={b.name} />
+                  <BrandLogoMark name={b.name} size="md" />
 
                   <span className="absolute bottom-1 right-2 text-[8px] text-white/60 font-semibold tracking-wider">{String(i + 1).padStart(2, "0")}</span>
                 </Link>
@@ -171,7 +171,7 @@ const Brands = () => {
                        style={{ background: `radial-gradient(circle at 80% 50%, ${s.ring}60, transparent 60%)` }} />
                   <div className="relative flex items-center gap-3">
                     <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
-                      <BrandLogoMark name={brand.name} />
+                      <BrandLogoMark name={brand.name} size="lg" />
                     </div>
                     <div className="text-white">
                       <h2 className="font-heading text-xl font-bold leading-tight">{brand.name}</h2>
