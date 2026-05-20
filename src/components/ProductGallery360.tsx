@@ -239,7 +239,7 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
         {/* Bottom controls */}
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <p className="text-[10px] text-muted-foreground bg-background/70 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border flex items-center gap-1.5">
-            <RotateCw className="w-3 h-3" /> Drag to rotate
+            <RotateCw className="w-3 h-3" /> Drag · scroll to zoom · ←/→ keys
           </p>
 
           <div className="flex items-center gap-1.5">
