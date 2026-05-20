@@ -358,6 +358,31 @@ const Reports = () => {
     doc.save("ChronoHub_" + title.replace(/\s+/g, "_") + ".pdf");
   };
 
+  const generateCSV = (title: string, list: OrderData[]) => {
+    const headers = ["S.No", "Order Number", "Date", "Status", "Payment Method", "Subtotal", "GST", "Shipping", "Total"];
+    const rows = list.map((o, i) => [
+      i + 1,
+      o.order_number,
+      format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
+      o.status,
+      o.payment_method,
+      o.subtotal,
+      o.gst_amount,
+      o.shipping_amount,
+      o.total_amount,
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ChronoHub_${title.replace(/\s+/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setCalendarOpen(false);
