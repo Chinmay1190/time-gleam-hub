@@ -52,6 +52,14 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   }, [stopMomentum]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Track hover position for zoom-on-hover lens
+    if (viewportRef.current) {
+      const rect = viewportRef.current.getBoundingClientRect();
+      setHoverPos({
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100,
+      });
+    }
     if (!isDragging || isAutoRotating) return;
     const delta = e.clientX - lastXRef.current;
     velocityRef.current = delta * 0.35;
