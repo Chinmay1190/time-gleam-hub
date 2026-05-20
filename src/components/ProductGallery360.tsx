@@ -14,10 +14,13 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   const [isDragging, setIsDragging] = useState(false);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverPos, setHoverPos] = useState({ x: 50, y: 50 });
   const lastXRef = useRef(0);
   const velocityRef = useRef(0);
   const momentumRef = useRef<number>();
   const dialRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const normalizedAngle = Math.round(((rotation % 360) + 360) % 360);
 
@@ -49,6 +52,14 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   }, [stopMomentum]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Track hover position for zoom-on-hover lens
+    if (viewportRef.current) {
+      const rect = viewportRef.current.getBoundingClientRect();
+      setHoverPos({
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100,
+      });
+    }
     if (!isDragging || isAutoRotating) return;
     const delta = e.clientX - lastXRef.current;
     velocityRef.current = delta * 0.35;
@@ -119,10 +130,13 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
     >
       {/* Main Viewport */}
       <div
+        ref={viewportRef}
         className="relative rounded-3xl overflow-hidden border border-border bg-gradient-to-br from-card to-background group select-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerEnter={() => setIsHovering(true)}
+        onPointerLeave={() => { setIsHovering(false); handlePointerUp(); }}
         style={{ cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }}
       >
         <div className="w-full aspect-square overflow-hidden relative">
@@ -135,14 +149,27 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.25 }}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover will-change-transform"
               style={{
-                transform: `perspective(900px) rotateY(${rotation}deg) scale(${zoomLevel * (isDragging ? 1.02 : 1)})`,
-                transition: isDragging ? "none" : "transform 0.15s ease-out",
+                transformOrigin: `${hoverPos.x}% ${hoverPos.y}%`,
+                transform: `perspective(900px) rotateY(${rotation}deg) scale(${zoomLevel * (isHovering && !isDragging ? 1.6 : 1) * (isDragging ? 1.02 : 1)})`,
+                transition: isDragging ? "none" : "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform-origin 0.15s ease-out",
               }}
               draggable={false}
             />
           </AnimatePresence>
+
+          {/* Hover zoom lens indicator */}
+          {isHovering && !isDragging && (
+            <div
+              className="absolute pointer-events-none w-24 h-24 rounded-full border-2 border-primary/40 backdrop-blur-[1px] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200"
+              style={{
+                left: `${hoverPos.x}%`,
+                top: `${hoverPos.y}%`,
+                boxShadow: "0 0 0 9999px hsl(var(--background) / 0.05)",
+              }}
+            />
+          )}
 
           {/* Ambient glow behind image */}
           <div
