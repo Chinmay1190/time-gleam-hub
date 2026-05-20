@@ -14,10 +14,13 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   const [isDragging, setIsDragging] = useState(false);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverPos, setHoverPos] = useState({ x: 50, y: 50 });
   const lastXRef = useRef(0);
   const velocityRef = useRef(0);
   const momentumRef = useRef<number>();
   const dialRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const normalizedAngle = Math.round(((rotation % 360) + 360) % 360);
 
