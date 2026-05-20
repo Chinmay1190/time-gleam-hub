@@ -31,16 +31,21 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   const startMomentum = useCallback(() => {
     stopMomentum();
     const decelerate = () => {
-      velocityRef.current *= 0.92;
+      velocityRef.current *= 0.94;
       if (Math.abs(velocityRef.current) < 0.05) {
         velocityRef.current = 0;
+        // Snap to nearest frame angle for crisp finish
+        if (images.length > 1) {
+          const step = 360 / images.length;
+          setRotation((prev) => Math.round(prev / step) * step);
+        }
         return;
       }
       setRotation((prev) => prev + velocityRef.current);
       momentumRef.current = requestAnimationFrame(decelerate);
     };
     decelerate();
-  }, [stopMomentum]);
+  }, [stopMomentum, images.length]);
 
   // Main image drag handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
