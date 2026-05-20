@@ -2,8 +2,10 @@ import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FileText, Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, ShoppingBag,
-  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles
+  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles,
+  Search, ArrowUpDown, FileSpreadsheet
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import CountUp from "@/components/CountUp";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
