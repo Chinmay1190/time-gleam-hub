@@ -2,8 +2,10 @@ import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FileText, Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, ShoppingBag,
-  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles
+  Activity, BarChart3, ArrowRight, LogIn, Clock, IndianRupee, Percent, Truck as TruckIcon, Sparkles,
+  Search, ArrowUpDown, FileSpreadsheet
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import CountUp from "@/components/CountUp";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -356,6 +358,31 @@ const Reports = () => {
     doc.save("ChronoHub_" + title.replace(/\s+/g, "_") + ".pdf");
   };
 
+  const generateCSV = (title: string, list: OrderData[]) => {
+    const headers = ["S.No", "Order Number", "Date", "Status", "Payment Method", "Subtotal", "GST", "Shipping", "Total"];
+    const rows = list.map((o, i) => [
+      i + 1,
+      o.order_number,
+      format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
+      o.status,
+      o.payment_method,
+      o.subtotal,
+      o.gst_amount,
+      o.shipping_amount,
+      o.total_amount,
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ChronoHub_${title.replace(/\s+/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setCalendarOpen(false);
@@ -378,6 +405,42 @@ const Reports = () => {
     title: string; periodLabel: string; list: OrderData[]; onDownload: () => void;
   }) => {
     const stats = computeStats(list);
+    const [query, setQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [sortKey, setSortKey] = useState<"date" | "amount" | "order">("date");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+    const statusOptions = useMemo(() => {
+      const set = new Set(list.map((o) => o.status));
+      return ["all", ...Array.from(set)];
+    }, [list]);
+
+    const filtered = useMemo(() => {
+      const q = query.trim().toLowerCase();
+      const arr = list.filter((o) => {
+        if (statusFilter !== "all" && o.status !== statusFilter) return false;
+        if (!q) return true;
+        return (
+          o.order_number.toLowerCase().includes(q) ||
+          o.payment_method.toLowerCase().includes(q) ||
+          String(o.total_amount).includes(q)
+        );
+      });
+      arr.sort((a, b) => {
+        let cmp = 0;
+        if (sortKey === "date") cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        else if (sortKey === "amount") cmp = Number(a.total_amount) - Number(b.total_amount);
+        else cmp = a.order_number.localeCompare(b.order_number);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+      return arr;
+    }, [list, query, statusFilter, sortKey, sortDir]);
+
+    const toggleSort = (key: "date" | "amount" | "order") => {
+      if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      else { setSortKey(key); setSortDir("desc"); }
+    };
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -407,12 +470,46 @@ const Reports = () => {
 
         {list.length > 0 ? (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+            <CardHeader className="pb-3 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <CardTitle className="text-base font-heading">Order Details</CardTitle>
-                <Button size="sm" onClick={onDownload} className="gap-2">
-                  <Download className="w-4 h-4" /> Download PDF
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => generateCSV(title, filtered)} className="gap-2">
+                    <FileSpreadsheet className="w-4 h-4" /> CSV
+                  </Button>
+                  <Button size="sm" onClick={onDownload} className="gap-2">
+                    <Download className="w-4 h-4" /> PDF
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[180px] max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search order #, payment..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-9 h-9 text-sm bg-muted/30"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {statusOptions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setStatusFilter(s)}
+                      className={`text-[11px] font-medium px-2.5 py-1 rounded-full border capitalize transition-all ${
+                        statusFilter === s
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted/40 text-muted-foreground border-border hover:border-primary/40"
+                      }`}
+                    >
+                      {s.replace(/_/g, " ")}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  Showing <span className="font-bold text-foreground">{filtered.length}</span> of {list.length}
+                </span>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -421,18 +518,40 @@ const Reports = () => {
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">S.No.</th>
-                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Order No.</th>
-                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Date</th>
-                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Amount</th>
+                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">
+                        <button onClick={() => toggleSort("order")} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                          Order No. <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">
+                        <button onClick={() => toggleSort("date")} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                          Date <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">
+                        <button onClick={() => toggleSort("amount")} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                          Amount <ArrowUpDown className="w-3 h-3" />
+                        </button>
+                      </th>
                       <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Status</th>
                       <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Payment</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {list.map((order, idx) => (
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground text-sm">
+                          No orders match your filters.
+                        </td>
+                      </tr>
+                    ) : filtered.map((order, idx) => (
                       <tr key={order.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 text-muted-foreground">{String(idx + 1).padStart(2, "0")}</td>
-                        <td className="px-4 py-3 font-medium">{order.order_number}</td>
+                        <td className="px-4 py-3">
+                          <Link to={`/orders/${order.id}`} className="font-medium text-foreground hover:text-primary transition-colors">
+                            {order.order_number}
+                          </Link>
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{format(new Date(order.created_at), "dd MMM yyyy")}</td>
                         <td className="px-4 py-3 font-heading font-bold text-primary">{formatINR(order.total_amount)}</td>
                         <td className="px-4 py-3">

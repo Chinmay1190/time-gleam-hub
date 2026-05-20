@@ -31,16 +31,21 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
   const startMomentum = useCallback(() => {
     stopMomentum();
     const decelerate = () => {
-      velocityRef.current *= 0.92;
+      velocityRef.current *= 0.94;
       if (Math.abs(velocityRef.current) < 0.05) {
         velocityRef.current = 0;
+        // Snap to nearest frame angle for crisp finish
+        if (images.length > 1) {
+          const step = 360 / images.length;
+          setRotation((prev) => Math.round(prev / step) * step);
+        }
         return;
       }
       setRotation((prev) => prev + velocityRef.current);
       momentumRef.current = requestAnimationFrame(decelerate);
     };
     decelerate();
-  }, [stopMomentum]);
+  }, [stopMomentum, images.length]);
 
   // Main image drag handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -93,22 +98,53 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
     setIsDragging(false);
   }, []);
 
+  // Drive frame cycling from rotation angle for a real 360° feel
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const step = 360 / images.length;
+    const idx = Math.floor(normalizedAngle / step) % images.length;
+    setActiveImageIndex(idx);
+  }, [normalizedAngle, images.length]);
+
   // Auto-rotate
   useEffect(() => {
     if (!isAutoRotating) return;
     let frame: number;
-    let counter = 0;
     const animate = () => {
-      setRotation((prev) => prev + 0.4);
-      counter++;
-      if (counter % 250 === 0) {
-        setActiveImageIndex((prev) => (prev + 1) % images.length);
-      }
+      setRotation((prev) => prev + 1.2);
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [isAutoRotating, images.length]);
+  }, [isAutoRotating]);
+
+  // Mouse wheel zoom inside viewport
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!isHovering) return;
+      e.preventDefault();
+      setZoomLevel((prev) => Math.min(2.5, Math.max(1, prev + (e.deltaY < 0 ? 0.15 : -0.15))));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [isHovering]);
+
+  // Keyboard rotation: arrow keys (5° step), Shift = 30°
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isHovering) return;
+      const step = e.shiftKey ? 30 : 5;
+      if (e.key === "ArrowLeft") { e.preventDefault(); setRotation((p) => p - step); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); setRotation((p) => p + step); }
+      else if (e.key === "+" || e.key === "=") setZoomLevel((p) => Math.min(2.5, p + 0.2));
+      else if (e.key === "-") setZoomLevel((p) => Math.max(1, p - 0.2));
+      else if (e.key === "0") { setRotation(0); setZoomLevel(1); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isHovering]);
 
   const toggleAutoRotate = () => {
     setIsAutoRotating((prev) => !prev);
@@ -152,7 +188,7 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
               className="w-full h-full object-cover will-change-transform"
               style={{
                 transformOrigin: `${hoverPos.x}% ${hoverPos.y}%`,
-                transform: `perspective(900px) rotateY(${rotation}deg) scale(${zoomLevel * (isHovering && !isDragging ? 1.6 : 1) * (isDragging ? 1.02 : 1)})`,
+                transform: `scale(${zoomLevel * (isHovering && !isDragging ? 1.6 : 1) * (isDragging ? 1.02 : 1)})`,
                 transition: isDragging ? "none" : "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform-origin 0.15s ease-out",
               }}
               draggable={false}
@@ -203,7 +239,7 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
         {/* Bottom controls */}
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <p className="text-[10px] text-muted-foreground bg-background/70 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border flex items-center gap-1.5">
-            <RotateCw className="w-3 h-3" /> Drag to rotate
+            <RotateCw className="w-3 h-3" /> Drag · scroll to zoom · ←/→ keys
           </p>
 
           <div className="flex items-center gap-1.5">
