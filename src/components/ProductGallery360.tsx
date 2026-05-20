@@ -188,7 +188,7 @@ const ProductGallery360 = ({ images, productName, badge }: ProductGallery360Prop
               className="w-full h-full object-cover will-change-transform"
               style={{
                 transformOrigin: `${hoverPos.x}% ${hoverPos.y}%`,
-                transform: `perspective(900px) rotateY(${rotation}deg) scale(${zoomLevel * (isHovering && !isDragging ? 1.6 : 1) * (isDragging ? 1.02 : 1)})`,
+                transform: `scale(${zoomLevel * (isHovering && !isDragging ? 1.6 : 1) * (isDragging ? 1.02 : 1)})`,
                 transition: isDragging ? "none" : "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform-origin 0.15s ease-out",
               }}
               draggable={false}
