@@ -84,6 +84,32 @@ const Profile = () => {
     navigate("/");
   };
 
+  // Monthly spend (last 6 months) — must run before any early return to keep hook order stable
+  const monthlySpend = useMemo(() => {
+    const now = new Date();
+    const buckets: { label: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({ label: MONTH_LABELS[d.getMonth()], total: 0 });
+    }
+    allOrders.forEach((o: any) => {
+      const d = new Date(o.created_at);
+      const diff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+      if (diff >= 0 && diff < 6) {
+        buckets[5 - diff].total += Number(o.total_amount || 0);
+      }
+    });
+    const max = Math.max(...buckets.map(b => b.total), 1);
+    return { buckets, max };
+  }, [allOrders]);
+
+  // Active shipment — also hoisted above early return
+  const activeOrder = useMemo(() => {
+    return allOrders.find((o: any) =>
+      ["pending", "confirmed", "processing", "shipped", "out_for_delivery"].includes(o.status)
+    );
+  }, [allOrders]);
+
   if (!user) {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center justify-center gap-6 px-4">
@@ -112,31 +138,8 @@ const Profile = () => {
   const filledCount = completionFields.filter(Boolean).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
-  // Monthly spend (last 6 months)
-  const monthlySpend = useMemo(() => {
-    const now = new Date();
-    const buckets: { label: string; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      buckets.push({ label: MONTH_LABELS[d.getMonth()], total: 0 });
-    }
-    allOrders.forEach((o: any) => {
-      const d = new Date(o.created_at);
-      const diff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-      if (diff >= 0 && diff < 6) {
-        buckets[5 - diff].total += Number(o.total_amount || 0);
-      }
-    });
-    const max = Math.max(...buckets.map(b => b.total), 1);
-    return { buckets, max };
-  }, [allOrders]);
 
-  // Active shipment
-  const activeOrder = useMemo(() => {
-    return allOrders.find((o: any) =>
-      ["pending", "confirmed", "processing", "shipped", "out_for_delivery"].includes(o.status)
-    );
-  }, [allOrders]);
+
 
   const copyEmail = () => {
     if (!user?.email) return;
