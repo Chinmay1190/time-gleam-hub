@@ -226,6 +226,10 @@ const Orders = () => {
             {filteredOrders.map((order, i) => {
               const status = statusConfig[order.status] || statusConfig.pending;
               const StatusIcon = status.icon;
+              const steps = ["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
+              const isCancelled = order.status === "cancelled";
+              const stepIdx = isCancelled ? -1 : Math.max(0, steps.indexOf(order.status));
+              const progressPct = isCancelled ? 0 : (stepIdx / (steps.length - 1)) * 100;
               return (
                 <motion.div
                   key={order.id}
@@ -235,29 +239,61 @@ const Orders = () => {
                 >
                   <Link
                     to={`/order/${order.id}`}
-                    className="glass-card p-5 sm:p-6 flex items-center justify-between gap-4 block hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all duration-200 group relative overflow-hidden"
+                    className="glass-card p-5 sm:p-6 block hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all duration-200 group relative overflow-hidden"
                   >
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bg.replace("/10","/60")}`} />
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className={`p-3 rounded-xl ${status.bg} ${status.color} group-hover:scale-110 transition-transform duration-200`}>
-                        <StatusIcon className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-heading font-semibold text-sm sm:text-base">{order.order_number}</h3>
-                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}
-                          </p>
-                          <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
-                            {status.label}
-                          </span>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`p-3 rounded-xl ${status.bg} ${status.color} group-hover:scale-110 transition-transform duration-200`}>
+                          <StatusIcon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-heading font-semibold text-sm sm:text-base">{order.order_number}</h3>
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(order.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}
+                            </p>
+                            <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="font-heading font-bold text-sm sm:text-base">{formatPrice(order.total_amount)}</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-heading font-bold text-sm sm:text-base">{formatPrice(order.total_amount)}</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                    </div>
+
+                    {/* Mini progress stepper */}
+                    {!isCancelled && (
+                      <div className="mt-4 pl-1">
+                        <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden mb-2">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progressPct}%` }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            className={`h-full rounded-full ${order.status === "delivered" ? "bg-gradient-to-r from-green-500 to-emerald-400" : "bg-gradient-to-r from-primary to-accent"}`}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold">
+                          {["Placed", "Confirmed", "Packed", "Shipped", "Out", "Delivered"].map((label, idx) => (
+                            <span
+                              key={label}
+                              className={`${idx <= stepIdx ? "text-primary" : "text-muted-foreground/50"} transition-colors`}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {isCancelled && (
+                      <div className="mt-3 text-[11px] text-destructive/80 flex items-center gap-1.5">
+                        <XCircle className="w-3 h-3" /> This order was cancelled
+                      </div>
+                    )}
                   </Link>
                 </motion.div>
               );
