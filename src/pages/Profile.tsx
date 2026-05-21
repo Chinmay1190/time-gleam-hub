@@ -61,6 +61,7 @@ const Profile = () => {
       const delivered = (orders || []).filter((o: any) => o.status === "delivered").length;
       setStats({ orders: orders?.length || 0, wishlist: wishCount || 0, spent: totalSpent, delivered });
       setRecentOrders((orders || []).slice(0, 4));
+      setAllOrders(orders || []);
     };
 
     loadProfile();
