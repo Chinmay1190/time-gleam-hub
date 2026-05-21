@@ -21,6 +21,8 @@ const Profile = () => {
   const [form, setForm] = useState({ full_name: "", phone: "", address: "", city: "", state: "", pincode: "" });
   const [stats, setStats] = useState({ orders: 0, wishlist: 0, spent: 0, delivered: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!user) return;
