@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Package, Heart, LogOut, ChevronRight, Mail, Phone, MapPin, Edit3, Save, X, ShieldCheck, ShoppingBag, IndianRupee, Calendar, BarChart3, Sparkles, Award } from "lucide-react";
+import { User, Package, Heart, LogOut, ChevronRight, Mail, Phone, MapPin, Edit3, Save, X, ShieldCheck, ShoppingBag, IndianRupee, Calendar, BarChart3, Sparkles, Award, Truck, ShoppingCart, HelpCircle, Store, Copy, Check, TrendingUp, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ import CountUp from "@/components/CountUp";
 
 const formatINR = (amount: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount);
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const Profile = () => {
   const { user, signOut } = useAuth();
