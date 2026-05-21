@@ -107,6 +107,45 @@ const Profile = () => {
     ? new Date(profile.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
     : "-";
 
+  // Profile completion percentage
+  const completionFields = [form.full_name, form.phone, form.address, form.city, form.state, form.pincode];
+  const filledCount = completionFields.filter(Boolean).length;
+  const completionPct = Math.round((filledCount / completionFields.length) * 100);
+
+  // Monthly spend (last 6 months)
+  const monthlySpend = useMemo(() => {
+    const now = new Date();
+    const buckets: { label: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({ label: MONTH_LABELS[d.getMonth()], total: 0 });
+    }
+    allOrders.forEach((o: any) => {
+      const d = new Date(o.created_at);
+      const diff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+      if (diff >= 0 && diff < 6) {
+        buckets[5 - diff].total += Number(o.total_amount || 0);
+      }
+    });
+    const max = Math.max(...buckets.map(b => b.total), 1);
+    return { buckets, max };
+  }, [allOrders]);
+
+  // Active shipment
+  const activeOrder = useMemo(() => {
+    return allOrders.find((o: any) =>
+      ["pending", "confirmed", "processing", "shipped", "out_for_delivery"].includes(o.status)
+    );
+  }, [allOrders]);
+
+  const copyEmail = () => {
+    if (!user?.email) return;
+    navigator.clipboard.writeText(user.email);
+    setCopied(true);
+    toast({ title: "Email copied!" });
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   // Loyalty tier based on spend
   const tier = stats.spent > 100000 ? { name: "Platinum", color: "from-purple-400 to-pink-400" }
     : stats.spent > 50000 ? { name: "Gold", color: "from-amber-300 to-amber-500" }
@@ -124,6 +163,13 @@ const Profile = () => {
     { to: "/orders", icon: Package, label: "My Orders", desc: "Track deliveries & view history", color: "bg-blue-500/10 text-blue-400" },
     { to: "/wishlist", icon: Heart, label: "My Wishlist", desc: "Saved products you love", color: "bg-pink-500/10 text-pink-400" },
     { to: "/reports", icon: BarChart3, label: "Reports & Analytics", desc: "Detailed spend & order analytics", color: "bg-purple-500/10 text-purple-400" },
+  ];
+
+  const quickActions = [
+    { to: "/shop", icon: Store, label: "Shop", tint: "from-primary/20 to-primary/5" },
+    { to: "/cart", icon: ShoppingCart, label: "Cart", tint: "from-accent/20 to-accent/5" },
+    { to: "/wishlist", icon: Heart, label: "Wishlist", tint: "from-pink-500/20 to-pink-500/5" },
+    { to: "/faq", icon: HelpCircle, label: "Help", tint: "from-blue-500/20 to-blue-500/5" },
   ];
 
   return (
