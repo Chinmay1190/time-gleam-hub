@@ -138,6 +138,33 @@ const Auth = () => {
                 </motion.div>
               ))}
             </div>
+
+            {/* Testimonial */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="mt-10 relative rounded-2xl border border-primary/15 bg-card/50 backdrop-blur-sm p-5"
+            >
+              <Quote className="absolute -top-3 -left-2 w-6 h-6 text-primary/40 rotate-180" />
+              <p className="text-sm leading-relaxed text-foreground/90 italic">
+                "Got my dream Apple Watch in 2 days. Authentic, perfectly packed, with a real bill. ChronoHub is now my go-to."
+              </p>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm">
+                  RK
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Rohan Kapoor</p>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-2.5 h-2.5 fill-accent text-accent" />
+                    ))}
+                    <span className="text-[10px] text-muted-foreground ml-1">Verified buyer</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
