@@ -4,8 +4,8 @@ import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag, LayoutGri
 import { useSearchParams, Link } from "react-router-dom";
 import { products, brands } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
-import { useCart } from "@/context/CartContext";
-import { useWishlist } from "@/context/WishlistContext";
+
+
 
 const allFeatures = ["GPS", "AMOLED", "Heart Rate", "SpO₂", "Bluetooth Calling", "NFC", "Water Resistant"];
 const allCategories = ["All", "Fitness", "Luxury", "Budget", "Kids", "Outdoor"];
