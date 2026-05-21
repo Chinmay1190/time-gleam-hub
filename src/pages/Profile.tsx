@@ -478,6 +478,222 @@ const Profile = () => {
           ))}
         </div>
 
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-4 gap-3 mb-6"
+        >
+          {quickActions.map((q) => (
+            <Link
+              key={q.label}
+              to={q.to}
+              className={`glass-card p-4 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:-translate-y-0.5 transition-all group bg-gradient-to-br ${q.tint}`}
+            >
+              <div className="w-10 h-10 rounded-xl bg-background/40 backdrop-blur flex items-center justify-center group-hover:scale-110 transition-transform">
+                <q.icon className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-xs font-semibold">{q.label}</span>
+            </Link>
+          ))}
+        </motion.div>
+
+        {/* Active Shipment + Profile Completion Row */}
+        <div className="grid lg:grid-cols-3 gap-4 mb-6">
+          {/* Active Shipment */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="glass-card p-6 lg:col-span-2 relative overflow-hidden"
+          >
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-accent/10 rounded-full blur-[80px]" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block">Live Tracking</span>
+                  <h3 className="font-heading font-bold text-lg flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-primary" /> Active Shipment
+                  </h3>
+                </div>
+                {activeOrder && (
+                  <Link to="/orders" className="text-xs text-accent font-semibold hover:underline">Track →</Link>
+                )}
+              </div>
+              {activeOrder ? (
+                <Link to="/orders" className="block">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div>
+                      <p className="font-bold text-base">{activeOrder.order_number}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(activeOrder.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <span className="text-sm font-heading font-bold text-primary">₹{formatINR(activeOrder.total_amount)}</span>
+                  </div>
+                  {(() => {
+                    const steps = ["pending", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
+                    const idx = Math.max(0, steps.indexOf(activeOrder.status));
+                    const pct = (idx / (steps.length - 1)) * 100;
+                    return (
+                      <>
+                        <div className="h-2 rounded-full bg-muted/50 overflow-hidden mb-3">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-accent shadow-lg"
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider">
+                          <span className={idx >= 0 ? "text-primary font-bold" : ""}>Placed</span>
+                          <span className={idx >= 2 ? "text-primary font-bold" : ""}>Processing</span>
+                          <span className={idx >= 3 ? "text-primary font-bold" : ""}>Shipped</span>
+                          <span className={idx >= 4 ? "text-primary font-bold" : ""}>Out for Delivery</span>
+                          <span className={idx >= 5 ? "text-primary font-bold" : ""}>Delivered</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </Link>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
+                    <Truck className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-semibold mb-1">No active shipments</p>
+                  <p className="text-xs text-muted-foreground mb-3">Place an order to track it here in real time</p>
+                  <Link to="/shop" className="text-xs text-accent font-semibold hover:underline">Browse Shop →</Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Profile Completion */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="glass-card p-6 relative overflow-hidden"
+          >
+            <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block mb-3">Profile Completion</span>
+            <div className="flex items-center gap-4">
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="34" strokeWidth="6" stroke="hsl(var(--muted))" fill="none" opacity="0.4" />
+                  <motion.circle
+                    cx="40" cy="40" r="34" strokeWidth="6" strokeLinecap="round"
+                    stroke="url(#completionGrad)" fill="none"
+                    initial={{ strokeDasharray: "0 213" }}
+                    animate={{ strokeDasharray: `${(completionPct / 100) * 213} 213` }}
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                  />
+                  <defs>
+                    <linearGradient id="completionGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" />
+                      <stop offset="100%" stopColor="hsl(var(--accent))" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-heading font-bold text-lg">{completionPct}%</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold mb-1 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-primary" /> {filledCount}/{completionFields.length} fields
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-snug mb-2">
+                  {completionPct === 100 ? "Your profile is complete!" : "Complete your profile for a better experience."}
+                </p>
+                {completionPct < 100 && !editing && (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="text-[11px] text-accent font-semibold hover:underline"
+                  >
+                    Complete now →
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Monthly Spend Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="glass-card p-6 mb-6 relative overflow-hidden"
+        >
+          <div className="absolute -top-16 -left-16 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+              <div>
+                <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block">Spending Insights</span>
+                <h3 className="font-heading font-bold text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" /> Last 6 Months
+                </h3>
+              </div>
+              <Link to="/reports" className="text-xs text-accent font-semibold hover:underline">Full Report →</Link>
+            </div>
+            <div className="flex items-end gap-2 sm:gap-4 h-40 px-2">
+              {monthlySpend.buckets.map((b, i) => {
+                const heightPct = (b.total / monthlySpend.max) * 100;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                    <span className="text-[10px] font-bold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      ₹{formatINR(b.total)}
+                    </span>
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${Math.max(heightPct, 2)}%` }}
+                      transition={{ duration: 0.9, delay: 0.5 + i * 0.07, ease: "easeOut" }}
+                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/40 to-accent/80 hover:from-primary/60 hover:to-accent transition-colors relative overflow-hidden"
+                    >
+                      <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
+                    </motion.div>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase">{b.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Saved Address */}
+        {(form.address || form.city) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="glass-card p-6 mb-6"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-semibold text-accent uppercase tracking-[0.2em] block">Default Shipping Address</span>
+                  <h3 className="font-heading font-bold text-base mt-0.5">{form.full_name || "Your Address"}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {[form.address, form.city, form.state, form.pincode].filter(Boolean).join(", ")}
+                    {form.phone && <span className="block mt-0.5">📞 {form.phone}</span>}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-accent font-semibold hover:underline flex-shrink-0"
+              >
+                Edit
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Sign Out */}
         <motion.button
           initial={{ opacity: 0 }}
