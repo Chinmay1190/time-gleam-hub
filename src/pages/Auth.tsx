@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Watch, Eye, EyeOff, Mail, Lock, User, ArrowRight, Shield, Zap, Star } from "lucide-react";
+import { Watch, Eye, EyeOff, Mail, Lock, User, ArrowRight, Shield, Zap, Star, Check, Quote, X as XIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,9 +13,39 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const passwordStrength = useMemo(() => {
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 10) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    const labels = ["Too weak", "Weak", "Fair", "Good", "Strong", "Excellent"];
+    const colors = ["bg-destructive", "bg-destructive", "bg-orange-500", "bg-amber-500", "bg-green-500", "bg-emerald-400"];
+    return { score, label: labels[score], color: colors[score], pct: (score / 5) * 100 };
+  }, [password]);
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) { toast({ title: "Enter your email", variant: "destructive" }); return; }
+    setForgotSending(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotSending(false);
+    if (error) toast({ title: "Could not send reset link", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Check your email", description: "We've sent a password reset link." });
+      setForgotOpen(false); setForgotEmail("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
