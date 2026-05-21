@@ -295,12 +295,56 @@ const Shop = () => {
           </motion.div>
         )}
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
-          ))}
-        </div>
+        {/* Product Grid / List */}
+        {viewMode === "grid" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((p, i) => (
+              <ProductCard key={p.id} product={p} index={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((p, i) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <Link to={`/product/${p.id}`} className="glass-card-hover p-3 sm:p-4 flex items-center gap-4 group">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-gradient-to-br from-muted/40 to-muted/10 overflow-hidden flex-shrink-0">
+                    <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
+                    <h3 className="font-heading font-bold text-sm sm:text-base truncate">{p.name}</h3>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-accent text-accent" />{p.rating}</span>
+                      <span>·</span>
+                      <span>{p.reviews} reviews</span>
+                      <span>·</span>
+                      <span className="truncate">{p.category}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {p.features.slice(0, 3).map((f) => (
+                        <span key={f} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-heading font-bold text-base sm:text-lg gold-gradient-text">₹{p.price.toLocaleString("en-IN")}</p>
+                    {p.originalPrice && p.originalPrice > p.price && (
+                      <p className="text-[11px] text-muted-foreground line-through">₹{p.originalPrice.toLocaleString("en-IN")}</p>
+                    )}
+                    <span className="inline-flex items-center gap-1 mt-2 text-xs text-primary font-semibold group-hover:underline">
+                      View →
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {filtered.length === 0 && (
           <div className="text-center py-20 text-muted-foreground">
