@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag } from "lucide-react";
+import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag, LayoutGrid, Rows3, Heart, ShoppingCart } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
 import { products, brands } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
+
+
 
 const allFeatures = ["GPS", "AMOLED", "Heart Rate", "SpO₂", "Bluetooth Calling", "NFC", "Water Resistant"];
 const allCategories = ["All", "Fitness", "Luxury", "Budget", "Kids", "Outdoor"];
@@ -30,6 +32,14 @@ const Shop = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [sortBy, setSortBy] = useState("popularity");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const pricePresets = [
+    { label: "Under ₹5k", range: [0, 5000] as [number, number] },
+    { label: "₹5k–₹15k", range: [5000, 15000] as [number, number] },
+    { label: "₹15k–₹40k", range: [15000, 40000] as [number, number] },
+    { label: "₹40k+", range: [40000, 100000] as [number, number] },
+  ];
 
   const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -137,30 +147,78 @@ const Shop = () => {
           ))}
         </div>
 
-        {/* Sort + Filter toggle */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-sm font-medium hover:bg-surface-hover transition-colors border border-transparent hover:border-primary/15"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+        {/* Price preset chips */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center px-1">
+            <Tag className="w-3 h-3 mr-1.5" /> Price
+          </span>
+          {pricePresets.map((p) => {
+            const active = priceRange[0] === p.range[0] && priceRange[1] === p.range[1];
+            return (
+              <button
+                key={p.label}
+                onClick={() => setPriceRange(active ? [0, 100000] : p.range)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                  active
+                    ? "bg-accent text-accent-foreground border-accent shadow-md shadow-accent/20"
+                    : "bg-card/60 border-border/60 text-muted-foreground hover:text-foreground hover:border-accent/40"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2.5 rounded-xl bg-secondary text-sm font-medium border-none outline-none cursor-pointer"
-          >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+        {/* Sort + Filter toggle */}
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-sm font-medium hover:bg-surface-hover transition-colors border border-transparent hover:border-primary/15"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              <span className="font-bold text-foreground">{filtered.length}</span> result{filtered.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex bg-secondary rounded-xl p-1 border border-transparent">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label="List view"
+              >
+                <Rows3 className="w-4 h-4" />
+              </button>
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2.5 rounded-xl bg-secondary text-sm font-medium border-none outline-none cursor-pointer"
+            >
+              {sortOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Filter Panel */}
@@ -237,12 +295,56 @@ const Shop = () => {
           </motion.div>
         )}
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
-          ))}
-        </div>
+        {/* Product Grid / List */}
+        {viewMode === "grid" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((p, i) => (
+              <ProductCard key={p.id} product={p} index={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((p, i) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <Link to={`/product/${p.id}`} className="glass-card-hover p-3 sm:p-4 flex items-center gap-4 group">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-gradient-to-br from-muted/40 to-muted/10 overflow-hidden flex-shrink-0">
+                    <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
+                    <h3 className="font-heading font-bold text-sm sm:text-base truncate">{p.name}</h3>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-accent text-accent" />{p.rating}</span>
+                      <span>·</span>
+                      <span>{p.reviews} reviews</span>
+                      <span>·</span>
+                      <span className="truncate">{p.category}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {p.features.slice(0, 3).map((f) => (
+                        <span key={f} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-heading font-bold text-base sm:text-lg gold-gradient-text">₹{p.price.toLocaleString("en-IN")}</p>
+                    {p.originalPrice && p.originalPrice > p.price && (
+                      <p className="text-[11px] text-muted-foreground line-through">₹{p.originalPrice.toLocaleString("en-IN")}</p>
+                    )}
+                    <span className="inline-flex items-center gap-1 mt-2 text-xs text-primary font-semibold group-hover:underline">
+                      View →
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {filtered.length === 0 && (
           <div className="text-center py-20 text-muted-foreground">
