@@ -202,7 +202,10 @@ const Profile = () => {
                 <Sparkles className="w-5 h-5 text-primary animate-pulse" />
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5 justify-center sm:justify-start"><Mail className="w-3.5 h-3.5 text-primary" /> {user.email}</span>
+                <button onClick={copyEmail} className="flex items-center gap-1.5 justify-center sm:justify-start hover:text-primary transition-colors group/email">
+                  <Mail className="w-3.5 h-3.5 text-primary" /> {user.email}
+                  {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 opacity-0 group-hover/email:opacity-100 transition-opacity" />}
+                </button>
                 {form.phone && <span className="flex items-center gap-1.5 justify-center sm:justify-start"><Phone className="w-3.5 h-3.5 text-primary" /> {form.phone}</span>}
               </div>
               {form.city && form.state && (
