@@ -32,6 +32,14 @@ const Shop = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [sortBy, setSortBy] = useState("popularity");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const pricePresets = [
+    { label: "Under ₹5k", range: [0, 5000] as [number, number] },
+    { label: "₹5k–₹15k", range: [5000, 15000] as [number, number] },
+    { label: "₹15k–₹40k", range: [15000, 40000] as [number, number] },
+    { label: "₹40k+", range: [40000, 100000] as [number, number] },
+  ];
 
   const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
