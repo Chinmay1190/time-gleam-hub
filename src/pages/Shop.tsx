@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag } from "lucide-react";
+import { SlidersHorizontal, X, Sparkles, Flame, Star, TrendingUp, Tag, LayoutGrid, Rows3, Heart, ShoppingCart } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
 import { products, brands } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 const allFeatures = ["GPS", "AMOLED", "Heart Rate", "SpO₂", "Bluetooth Calling", "NFC", "Water Resistant"];
 const allCategories = ["All", "Fitness", "Luxury", "Budget", "Kids", "Outdoor"];
