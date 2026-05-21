@@ -279,7 +279,73 @@ const Auth = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              {/* Password strength meter (signup only) */}
+              <AnimatePresence>
+                {!isLogin && password.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2 overflow-hidden"
+                  >
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                            i <= passwordStrength.score ? passwordStrength.color : "bg-muted"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground flex items-center justify-between">
+                      <span>Password strength: <span className="font-semibold text-foreground">{passwordStrength.label}</span></span>
+                      {passwordStrength.score >= 4 && <Check className="w-3 h-3 text-green-500" />}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+
+            {/* Remember me + forgot password (login only) */}
+            {isLogin && (
+              <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                  <span className="text-muted-foreground group-hover:text-foreground transition-colors">Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { setForgotEmail(email); setForgotOpen(true); }}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            {/* Signup bonus banner */}
+            {!isLogin && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20"
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                  <Star className="w-4 h-4 text-primary fill-primary" />
+                </div>
+                <div className="text-xs">
+                  <p className="font-bold text-foreground">Welcome bonus: ₹500 off</p>
+                  <p className="text-muted-foreground">On your first order above ₹5,000</p>
+                </div>
+              </motion.div>
+            )}
 
             <button
               type="submit"
@@ -296,6 +362,55 @@ const Auth = () => {
               )}
             </button>
           </form>
+
+          {/* Forgot password dialog */}
+          <AnimatePresence>
+            {forgotOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setForgotOpen(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="glass-card p-6 w-full max-w-sm relative"
+                >
+                  <button
+                    onClick={() => setForgotOpen(false)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-muted"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </button>
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="font-heading font-bold text-lg mb-1">Reset password</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Enter your email — we'll send you a secure link to reset your password.
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="input-field mb-3"
+                  />
+                  <button
+                    onClick={handleForgotPassword}
+                    disabled={forgotSending}
+                    className="w-full btn-primary"
+                  >
+                    {forgotSending ? "Sending..." : "Send reset link"}
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             By continuing, you agree to our{" "}
