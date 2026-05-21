@@ -92,13 +92,30 @@ const LoadingScreen = () => {
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-lg shadow-primary/40" />
             </motion.div>
 
-            {/* Center icon */}
+            {/* Center icon with clock tick markers + sweeping hand */}
             <motion.div
               animate={{ rotateY: [0, 360] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center backdrop-blur-sm"
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center backdrop-blur-sm relative"
             >
-              <Watch className="w-12 h-12 text-primary" />
+              {/* 12 hour-tick markers */}
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute left-1/2 top-1/2 w-px h-9 origin-top"
+                  style={{ transform: `translate(-50%, 0) rotate(${i * 30}deg) translateY(-44px)` }}
+                >
+                  <div className={`w-px h-1.5 mx-auto ${i % 3 === 0 ? "bg-primary/80 h-2" : "bg-primary/30"}`} />
+                </div>
+              ))}
+              {/* Sweeping second hand */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                className="absolute left-1/2 top-1/2 w-0.5 h-10 -mt-10 origin-bottom bg-gradient-to-t from-accent to-transparent rounded-full"
+                style={{ transformOrigin: "50% 100%" }}
+              />
+              <Watch className="w-10 h-10 text-primary relative z-10" />
             </motion.div>
 
             {/* Pulse rings */}
