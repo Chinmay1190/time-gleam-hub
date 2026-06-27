@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="public/favicon.ico" width="72" alt="TimeGleam Hub logo" />
-
 # TimeGleam Hub
 
 **A premium smartwatch e-commerce experience — built for speed, style, and scale.**
