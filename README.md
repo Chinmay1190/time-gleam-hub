@@ -1,73 +1,226 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+<img src="public/favicon.ico" width="72" alt="TimeGleam Hub logo" />
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+# TimeGleam Hub
 
-## How can I edit this code?
+**A premium smartwatch e-commerce experience — built for speed, style, and scale.**
 
-There are several ways of editing your application.
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-**Use Lovable**
+[Live Demo](#) · [Report Bug](../../issues) · [Request Feature](../../issues)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+</div>
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## Overview
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+TimeGleam Hub is a full-stack e-commerce storefront for premium smartwatches. It's built as a portfolio-grade project demonstrating real-world patterns: authenticated user flows, a full cart-to-checkout-to-invoice pipeline, interactive product visualization, and a sales analytics dashboard — all wrapped in a smooth, animated UI.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+> **Stack at a glance:** React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion · Supabase · TanStack Query · Recharts
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Features
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🏠 Storefront
+- **Animated Hero Carousel** — Five auto-advancing slides with parallax scroll driven by Framer Motion's `useScroll` + `useTransform`
+- **Category Browsing** — Fitness, Luxury, Outdoor, Kids, Budget, and AMOLED collections with visual category cards
+- **Brand Directory** — Dedicated brands page showcasing all watch makers in the catalogue
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🔍 Product Discovery
+- **Smart Filtering** — Filter by category, brand, price range, and features simultaneously
+- **360° Product Gallery** — Drag-to-rotate viewer with momentum physics, auto-spin toggle, and pinch/scroll zoom
+- **Product Detail** — Full specs, multi-color selection, strap material picker, and aggregated review scores
+- **Wishlist** — Persistent wishlist with add/remove notifications
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 🛒 Cart & Checkout
+- **Persistent Cart** — Global cart context with real-time quantity adjustment and subtotal calculation
+- **Checkout Flow** — Address entry → order summary → payment confirmation
+- **Order Success** — Confirmation screen with animated count-up stats
+- **PDF Invoice** — Downloadable invoice generated client-side via jsPDF + html2canvas
+
+### 👤 User Accounts
+- **Auth** — Email/password sign-up and sign-in via Supabase Auth with protected routes
+- **Profile** — View and update account details
+- **Order History** — Full order list and per-order itemized detail view
+
+### 📊 Analytics Dashboard
+- **Sales Reports** — Revenue totals, order counts, and category breakdowns rendered with Recharts (Area, Pie, RadialBar)
+- **Date Ranges** — One-click presets (Today / Week / Month / Quarter) plus a custom calendar range picker
+- **PDF Export** — Download the current report view as a formatted PDF
+
+### 🎨 UI Polish
+- **Dark / Light Theme** — System-aware with manual toggle via `next-themes`
+- **Animated Loading Screen** — Brand splash on first load
+- **Toast System** — Cart and wishlist action feedback via Sonner
+- **Fully Responsive** — Mobile-first, tested across breakpoints
+
+---
+
+## Tech Stack
+
+| Concern | Technology |
+|---|---|
+| UI Framework | React 18 + TypeScript |
+| Build | Vite 5 + SWC |
+| Styling | Tailwind CSS · tailwind-merge · tailwindcss-animate |
+| Components | shadcn/ui (Radix UI) |
+| Animation | Framer Motion |
+| Routing | React Router v6 |
+| Backend & Auth | Supabase (PostgreSQL + Auth) |
+| Server State | TanStack Query v5 |
+| Forms | React Hook Form + Zod |
+| Charts | Recharts |
+| PDF | jsPDF + html2canvas |
+| Icons | Lucide React |
+| Date Utilities | date-fns |
+| Testing | Vitest + Testing Library |
+| Package Manager | Bun *(npm compatible)* |
+
+---
+
+## Project Structure
+
+```
+src/
+├── assets/                  # Watch and hero images
+├── components/
+│   ├── ui/                  # shadcn/ui primitives
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   ├── ProductCard.tsx
+│   ├── ProductGallery360.tsx # Drag-to-rotate viewer
+│   ├── CartNotification.tsx
+│   ├── WishlistNotification.tsx
+│   ├── LoadingScreen.tsx
+│   └── CountUp.tsx
+├── context/
+│   ├── AuthContext.tsx
+│   ├── CartContext.tsx
+│   ├── WishlistContext.tsx
+│   └── ThemeContext.tsx
+├── data/
+│   └── products.ts          # Catalogue · categories · brands
+├── pages/                   # One file per route (20 pages)
+└── integrations/
+    └── supabase/            # Client + generated types
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Getting Started
 
-**Use GitHub Codespaces**
+### Prerequisites
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Node.js** 18+ or **Bun** 1+
+- A [Supabase](https://supabase.com) project with Auth enabled
 
-## What technologies are used for this project?
+### 1 — Clone & Install
 
-This project is built with:
+```bash
+git clone https://github.com/your-username/time-gleam-hub.git
+cd time-gleam-hub
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+bun install        # or: npm install
+```
 
-## How can I deploy this project?
+### 2 — Configure Environment
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```bash
+cp .env.example .env
+```
 
-## Can I connect a custom domain to my Lovable project?
+Edit `.env`:
 
-Yes, you can!
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+> **Security note:** Never commit real credentials. `.env` is already in `.gitignore`. Rotate any keys that have been exposed.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 3 — Run Locally
+
+```bash
+bun run dev        # http://localhost:5173
+```
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `bun run dev` | Start dev server with HMR |
+| `bun run build` | Production build → `dist/` |
+| `bun run preview` | Serve the production build locally |
+| `bun run lint` | ESLint across the project |
+| `bun run test` | Run tests once (Vitest) |
+| `bun run test:watch` | Run tests in watch mode |
+
+---
+
+## Database Schema
+
+TimeGleam Hub reads from and writes to the following Supabase tables:
+
+| Table | Purpose |
+|---|---|
+| `profiles` | Extended user data (name, avatar, preferences) |
+| `orders` | Order header (user, total, status, timestamps) |
+| `order_items` | Line items per order (product id, qty, price snapshot) |
+
+Refer to `src/integrations/supabase/` for TypeScript type definitions that reflect the full schema.
+
+---
+
+## Deployment
+
+The output is a static SPA (`dist/`) deployable anywhere.
+
+**Vercel (recommended)**
+```bash
+vercel          # or push to GitHub and import in the Vercel dashboard
+```
+
+**Netlify**
+Set build command to `npm run build` and publish directory to `dist`. Add environment variables under *Site settings → Environment variables*.
+
+**Any CDN / VPS**
+Serve the `dist/` folder as static files. Ensure your server redirects all routes to `index.html` for client-side routing to work.
+
+---
+
+## Roadmap
+
+- [ ] Supabase Realtime stock updates
+- [ ] Stripe payment integration
+- [ ] Admin product management panel
+- [ ] Review & rating submission
+- [ ] i18n / multi-currency support
+
+---
+
+## License
+
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+
+Product names, brand references, and imagery within the demo dataset are illustrative only and not affiliated with real manufacturers.
+
+---
+
+## Acknowledgements
+
+[shadcn/ui](https://ui.shadcn.com) · [Framer Motion](https://www.framer.com/motion/) · [Supabase](https://supabase.com) · [Lucide](https://lucide.dev) · [TanStack Query](https://tanstack.com/query)
+
+---
+
+<div align="center">
+  <sub>Built with ☕ and TypeScript</sub>
+</div>
